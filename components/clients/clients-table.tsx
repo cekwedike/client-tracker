@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { BillingBadge, StatusBadge } from "@/components/clients/billing-badge";
 import { LocalTimeBadge } from "@/components/clients/local-time-badge";
@@ -14,12 +14,12 @@ import { buildCcLeadBlock } from "@/lib/client-copy";
 import { sortClientsWithPinned } from "@/lib/pinned-clients";
 import type { ClientWithRelations } from "@/lib/types";
 import {
+  compareClientsByContactWindow,
   formatClientLocation,
   getTimezoneAbbreviation,
 } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import {
-  ArrowUpRight,
   AtSign,
   Building2,
   ExternalLink,
@@ -47,16 +47,24 @@ function getPrimaryPhone(
   );
 }
 
+function sortByContactWindow(clients: ClientWithRelations[]) {
+  return [...clients].sort(compareClientsByContactWindow);
+}
+
 function ClientRow({
   client,
   index,
   compact,
   reduceMotion,
+  selected,
+  onSelect,
 }: {
   client: ClientWithRelations;
   index: number;
   compact: boolean;
   reduceMotion: boolean | null;
+  selected: boolean;
+  onSelect: (client: ClientWithRelations) => void;
 }) {
   const ccContact = getDefaultCcContact(client);
   const phone = getPrimaryPhone(client, ccContact);
@@ -81,10 +89,28 @@ function ClientRow({
 
   return (
     <MotionFadeUp key={client.id} delay={index * 0.04}>
-      <Link href={`/clients/${client.id}`} className="group block">
+      <motion.div
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelect(client)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(client);
+          }
+        }}
+        className={cn(
+          "group block w-full cursor-pointer text-left",
+          selected && "relative z-[1]",
+        )}
+        aria-pressed={selected}
+      >
         <motion.div
           className={cn(
-            "rounded-xl glass-panel gradient-border transition-all duration-200 hover:border-primary/30 hover:shadow-[0_8px_32px_oklch(0_0_0_/_35%)]",
+            "rounded-xl glass-panel gradient-border transition-all duration-200",
+            "hover:border-primary/30 hover:shadow-[0_8px_32px_oklch(0_0_0_/_35%)]",
+            selected &&
+              "border-primary/45 shadow-[0_0_0_1px_oklch(0.72_0.14_85_/_25%),0_8px_32px_oklch(0_0_0_/_35%)] ring-1 ring-primary/20",
             compact ? "p-3 sm:p-4" : "p-4 sm:p-5",
           )}
           whileHover={
@@ -97,7 +123,12 @@ function ClientRow({
             <div className="min-w-0 xl:w-[28%]">
               <div className="flex flex-wrap items-center gap-2">
                 <PinButton clientId={client.id} />
-                <h3 className="text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                <h3
+                  className={cn(
+                    "text-lg font-bold tracking-tight text-foreground transition-colors",
+                    selected ? "text-primary" : "group-hover:text-primary",
+                  )}
+                >
                   {companyName}
                 </h3>
                 {client.company_name && (
@@ -120,7 +151,7 @@ function ClientRow({
                 </p>
               )}
               <p className="mt-1 flex items-center gap-1.5 text-xs text-subtle">
-                <UserCircle2 className="h-3 w-3 shrink-0" />
+                <UserCircle2 className="h-3.5 w-3.5 shrink-0" />
                 <span>{ownerName ?? "Unassigned"}</span>
               </p>
               <p className="mt-1 text-xs text-subtle">{location}</p>
@@ -238,26 +269,55 @@ function ClientRow({
                   doNotContactAfter={client.do_not_contact_after}
                 />
               </div>
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                  View details
-                </span>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
-              </div>
+              <p
+                className={cn(
+                  "text-right text-xs transition-colors",
+                  selected
+                    ? "font-medium text-primary"
+                    : "text-muted-foreground opacity-0 group-hover:opacity-100",
+                )}
+              >
+                {selected ? "Details open" : "View details"}
+              </p>
             </div>
           </div>
         </motion.div>
-      </Link>
+      </motion.div>
     </MotionFadeUp>
   );
 }
 
-export function ClientsTable({ clients }: { clients: ClientWithRelations[] }) {
+export function ClientsTable({
+  clients,
+  selectedClientId,
+  onSelectClient,
+}: {
+  clients: ClientWithRelations[];
+  selectedClientId?: string | null;
+  onSelectClient: (client: ClientWithRelations) => void;
+}) {
   const { density } = useSettings();
   const reduceMotion = useReducedMotion();
   const compact = density === "compact";
   const { pinnedIds } = usePinnedClients();
-  const { pinned, rest } = sortClientsWithPinned(clients, pinnedIds);
+  const [sortTick, setSortTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setSortTick((t) => t + 1), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const { pinned, rest } = useMemo(() => {
+    void sortTick;
+    const { pinned: rawPinned, rest: rawRest } = sortClientsWithPinned(
+      clients,
+      pinnedIds,
+    );
+    return {
+      pinned: sortByContactWindow(rawPinned),
+      rest: sortByContactWindow(rawRest),
+    };
+  }, [clients, pinnedIds, sortTick]);
 
   if (clients.length === 0) {
     return (
@@ -290,6 +350,8 @@ export function ClientsTable({ clients }: { clients: ClientWithRelations[] }) {
               index={index}
               compact={compact}
               reduceMotion={reduceMotion}
+              selected={selectedClientId === client.id}
+              onSelect={onSelectClient}
             />
           ))}
         </section>
@@ -298,7 +360,7 @@ export function ClientsTable({ clients }: { clients: ClientWithRelations[] }) {
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {rest.length} client{rest.length === 1 ? "" : "s"} · ops reference
+            {rest.length} client{rest.length === 1 ? "" : "s"} · sorted by contact window
           </p>
         </div>
         {rest.map((client, index) => (
@@ -308,6 +370,8 @@ export function ClientsTable({ clients }: { clients: ClientWithRelations[] }) {
             index={index}
             compact={compact}
             reduceMotion={reduceMotion}
+            selected={selectedClientId === client.id}
+            onSelect={onSelectClient}
           />
         ))}
       </section>

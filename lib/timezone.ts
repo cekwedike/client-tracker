@@ -122,6 +122,106 @@ export function getContactWindowStatus(
   return { status: "open", label: "Safe to contact" };
 }
 
+const CONTACT_WINDOW_PRIORITY: Record<ContactWindowStatus, number> = {
+  open: 0,
+  closing: 1,
+  closed: 2,
+};
+
+function getContactWindowEndMinutes(
+  timezone: string,
+  businessHours: BusinessHour[],
+  doNotContactBefore?: string | null,
+  doNotContactAfter?: string | null,
+): number | null {
+  const now = getLocalTime(timezone);
+  const dayOfWeek = now.weekday % 7;
+  const todayHours = businessHours.find((h) => h.day_of_week === dayOfWeek);
+
+  if (todayHours?.is_closed) return null;
+
+  const endTime = todayHours?.end_time ?? "17:00";
+  const after = doNotContactAfter ?? endTime;
+  const [endH, endM] = after.split(":").map(Number);
+  return endH * 60 + endM;
+}
+
+export function getMinutesUntilContactWindowClose(
+  timezone: string,
+  businessHours: BusinessHour[],
+  doNotContactBefore?: string | null,
+  doNotContactAfter?: string | null,
+): number | null {
+  const windowStatus = getContactWindowStatus(
+    timezone,
+    businessHours,
+    doNotContactBefore,
+    doNotContactAfter,
+  );
+  if (windowStatus.status !== "closing") return null;
+
+  const now = getLocalTime(timezone);
+  const endMinutes = getContactWindowEndMinutes(
+    timezone,
+    businessHours,
+    doNotContactBefore,
+    doNotContactAfter,
+  );
+  if (endMinutes === null) return null;
+
+  return endMinutes - (now.hour * 60 + now.minute);
+}
+
+export function compareClientsByContactWindow<
+  T extends {
+    company_name?: string | null;
+    timezone: string;
+    business_hours: BusinessHour[];
+    do_not_contact_before?: string | null;
+    do_not_contact_after?: string | null;
+  },
+>(a: T, b: T): number {
+  const statusA = getContactWindowStatus(
+    a.timezone,
+    a.business_hours,
+    a.do_not_contact_before,
+    a.do_not_contact_after,
+  );
+  const statusB = getContactWindowStatus(
+    b.timezone,
+    b.business_hours,
+    b.do_not_contact_before,
+    b.do_not_contact_after,
+  );
+
+  const priorityDiff =
+    CONTACT_WINDOW_PRIORITY[statusA.status] -
+    CONTACT_WINDOW_PRIORITY[statusB.status];
+  if (priorityDiff !== 0) return priorityDiff;
+
+  if (statusA.status === "closing") {
+    const minutesA =
+      getMinutesUntilContactWindowClose(
+        a.timezone,
+        a.business_hours,
+        a.do_not_contact_before,
+        a.do_not_contact_after,
+      ) ?? 999;
+    const minutesB =
+      getMinutesUntilContactWindowClose(
+        b.timezone,
+        b.business_hours,
+        b.do_not_contact_before,
+        b.do_not_contact_after,
+      ) ?? 999;
+    return minutesA - minutesB;
+  }
+
+  const nameA = a.company_name?.trim().toLowerCase() ?? "";
+  const nameB = b.company_name?.trim().toLowerCase() ?? "";
+  return nameA.localeCompare(nameB);
+}
+
 function formatTime12h(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "PM" : "AM";
