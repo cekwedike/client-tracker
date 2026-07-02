@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/actions/activity";
 import { createClient } from "@/lib/supabase/server";
 import { getDefaultBusinessHours } from "@/lib/timezone";
 import {
@@ -9,7 +10,48 @@ import {
   type ClientFormValues,
   type QuickAddClientValues,
 } from "@/lib/validations/client";
-import type { ClientWithRelations } from "@/lib/types";
+import { validateClientFormData } from "@/lib/validations/client-save";
+import type { ClientDashboardSummary, ClientWithRelations } from "@/lib/types";
+
+/** Lighter fetch for dashboard — omits heavy text fields */
+export async function getClientsForDashboard() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("clients")
+    .select(
+      `
+      id,
+      company_name,
+      primary_contact_name,
+      status,
+      billing_model,
+      city,
+      state_region,
+      timezone,
+      do_not_contact_before,
+      do_not_contact_after,
+      smartlead_inbox_url,
+      contacts(id, role, name, email, phone, cc_alias, is_default_cc),
+      business_hours(id, client_id, day_of_week, start_time, end_time, is_closed),
+      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
+    `,
+    )
+    .order("company_name");
+
+  if (error) throw new Error(error.message);
+  return data as unknown as ClientDashboardSummary[];
+}
+
+export async function getClientOptions() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, company_name")
+    .order("company_name");
+
+  if (error) throw new Error(error.message);
+  return data as Pick<ClientWithRelations, "id" | "company_name">[];
+}
 
 export async function getClients(filters?: {
   search?: string;
@@ -80,8 +122,54 @@ export async function getClient(id: string) {
   return data as ClientWithRelations;
 }
 
+export async function getDuplicateCcEmailMap(excludeClientId?: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("email, client:clients(id, company_name)")
+    .not("email", "is", null);
+
+  if (error) throw new Error(error.message);
+
+  const map = new Map<string, string>();
+  for (const row of data ?? []) {
+    const email = row.email?.trim().toLowerCase();
+    const raw = row.client as unknown;
+    const client = (Array.isArray(raw) ? raw[0] : raw) as
+      | { id: string; company_name: string }
+      | null
+      | undefined;
+    if (!email || !client) continue;
+    if (excludeClientId && client.id === excludeClientId) continue;
+    map.set(email, client.company_name);
+  }
+  return map;
+}
+
+async function assertClientSaveValid(
+  values: ClientFormValues,
+  excludeClientId?: string,
+) {
+  const duplicateCcEmails = await getDuplicateCcEmailMap(excludeClientId);
+  const issues = validateClientFormData(values, { duplicateCcEmails, excludeClientId });
+  const errors = issues.filter((i) => i.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  return issues.filter((i) => i.severity === "warning");
+}
+
+export async function validateClientSave(
+  values: ClientFormValues,
+  excludeClientId?: string,
+) {
+  const duplicateCcEmails = await getDuplicateCcEmailMap(excludeClientId);
+  return validateClientFormData(values, { duplicateCcEmails, excludeClientId });
+}
+
 export async function createClientRecord(values: ClientFormValues) {
   const parsed = clientSchema.parse(values);
+  await assertClientSaveValid(parsed);
   const supabase = await createClient();
 
   const { contacts, business_hours, ...clientData } = parsed;
@@ -122,6 +210,8 @@ export async function createClientRecord(values: ClientFormValues) {
     description: `Discussion for ${client.company_name}`,
   });
 
+  await logActivity("client_created", { company_name: client.company_name }, client.id);
+
   revalidatePath("/clients");
   revalidatePath("/dashboard");
   return client;
@@ -159,6 +249,7 @@ export async function quickAddClient(values: QuickAddClientValues) {
 
 export async function updateClient(id: string, values: ClientFormValues) {
   const parsed = clientSchema.parse(values);
+  await assertClientSaveValid(parsed, id);
   const supabase = await createClient();
   const { contacts, business_hours, ...clientData } = parsed;
 
@@ -190,6 +281,8 @@ export async function updateClient(id: string, values: ClientFormValues) {
     if (hoursError) throw new Error(hoursError.message);
   }
 
+  await logActivity("client_edited", { company_name: parsed.company_name }, id);
+
   revalidatePath("/clients");
   revalidatePath("/dashboard");
   revalidatePath(`/clients/${id}`);
@@ -217,6 +310,7 @@ export async function addClientNote(clientId: string, content: string) {
   });
 
   if (error) throw new Error(error.message);
+  await logActivity("note_added", { preview: content.slice(0, 80) }, clientId);
   revalidatePath(`/clients/${clientId}`);
 }
 
@@ -237,12 +331,30 @@ export async function updateClientOwner(
   ownerId: string | null,
 ) {
   const supabase = await createClient();
+
+  let ownerName = "Unassigned";
+  if (ownerId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", ownerId)
+      .single();
+    ownerName = profile?.full_name ?? profile?.email ?? ownerName;
+  }
+
   const { error } = await supabase
     .from("clients")
     .update({ primary_owner_id: ownerId })
     .eq("id", clientId);
 
   if (error) throw new Error(error.message);
+
+  await logActivity(
+    "owner_changed",
+    { new_owner_id: ownerId, new_owner_name: ownerName },
+    clientId,
+  );
+
   revalidatePath("/clients");
   revalidatePath("/dashboard");
   revalidatePath(`/clients/${clientId}`);

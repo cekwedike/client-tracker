@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { CommandPaletteProvider } from "@/components/command-palette/command-palette-provider";
 import { getAuthUser, getCurrentUser } from "@/lib/actions/auth";
+import { getClientOptions } from "@/lib/actions/clients";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { checkDatabaseReady } from "@/lib/supabase/schema";
 import { Toaster } from "@/components/ui/sonner";
@@ -30,9 +32,12 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const clientOptions = await getClientOptions();
+
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar user={user} />
+    <CommandPaletteProvider>
+      <div className="flex h-screen bg-background">
+        <Sidebar user={user} clientOptions={clientOptions} />
       <main className="relative flex-1 overflow-y-auto">
         <div
           className="pointer-events-none fixed inset-0 left-64 opacity-30"
@@ -46,5 +51,6 @@ export default async function DashboardLayout({
       </main>
       <Toaster />
     </div>
+    </CommandPaletteProvider>
   );
 }

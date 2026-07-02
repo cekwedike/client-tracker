@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, LayoutGrid, RotateCcw } from "lucide-react";
 import { SpreadsheetRefreshPanel } from "@/components/settings/spreadsheet-refresh-panel";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { PermissionMatrix } from "@/components/settings/permission-matrix";
+import { ExportClientsPanel } from "@/components/settings/export-clients-panel";
+import { canExportClients } from "@/lib/permissions";
 import type { Profile } from "@/lib/types";
 
 function ToggleGroup<T extends string>({
@@ -128,6 +132,20 @@ export function SettingsPanel({ user }: { user: Profile }) {
           </div>
         </div>
       </MotionFadeUp>
+
+      <MotionFadeUp delay={0.1}>
+        <NotificationSettings />
+      </MotionFadeUp>
+
+      <MotionFadeUp delay={0.11}>
+        <PermissionMatrix />
+      </MotionFadeUp>
+
+      {canExportClients(user.role) && (
+        <MotionFadeUp delay={0.12}>
+          <ExportClientsPanel />
+        </MotionFadeUp>
+      )}
 
       {user.role === "admin" && <SpreadsheetRefreshPanel />}
 

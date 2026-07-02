@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,6 +46,22 @@ export function ClientFilters({
       onClearSearch?.();
     }
   };
+
+  useEffect(() => {
+    const current = searchParams.get("search") ?? "";
+    if (search === current) return;
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (search.trim()) params.set("search", search.trim());
+      else params.delete("search");
+      startTransition(() => {
+        router.push(`/clients?${params.toString()}`);
+      });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [search, searchParams, router]);
 
   return (
     <div className="mb-6 glass-panel p-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClientRecord, updateClient } from "@/lib/actions/clients";
+import { createClientRecord, updateClient, validateClientSave } from "@/lib/actions/clients";
 import {
   clientSchema,
   type ClientFormValues,
@@ -119,7 +119,36 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
     name: "contacts",
   });
 
+  const [inlineIssues, setInlineIssues] = useState<
+    { field: string; message: string; severity: "error" | "warning" }[]
+  >([]);
+
+  const watched = form.watch();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          const issues = await validateClientSave(
+            watched as ClientFormValues,
+            client?.id,
+          );
+          setInlineIssues(issues);
+        } catch {
+          setInlineIssues([]);
+        }
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [watched, client?.id]);
+
   const onSubmit = (values: ClientFormValues) => {
+    const blocking = inlineIssues.filter((i) => i.severity === "error");
+    if (blocking.length > 0) {
+      toast.error(blocking[0].message);
+      return;
+    }
+
     startTransition(async () => {
       try {
         if (isEdit && client) {
@@ -139,6 +168,22 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {inlineIssues.length > 0 && (
+        <div className="space-y-1 rounded-lg border border-border/60 bg-muted/30 p-3">
+          {inlineIssues.map((issue) => (
+            <p
+              key={`${issue.field}-${issue.message}`}
+              className={
+                issue.severity === "error"
+                  ? "text-sm text-red-400"
+                  : "text-sm text-amber-400"
+              }
+            >
+              {issue.message}
+            </p>
+          ))}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Company Details</CardTitle>
@@ -373,8 +418,8 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
             <Input {...form.register("smartlead_campaign_name")} placeholder="As it appears in your outreach tool" />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Inbox Link</Label>
-            <Input {...form.register("smartlead_inbox_url")} placeholder="Optional bookmark URL for this client's inbox" />
+            <Label>Inbox URL</Label>
+            <Input {...form.register("smartlead_inbox_url")} placeholder="https://…" />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Services Offered</Label>

@@ -232,3 +232,29 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Meridian Brass scrollbars — global */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C9A227 #161A1F;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #161A1F;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #C9A227;
+  border-radius: 9999px;
+  border: 2px solid #161A1F;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #9A7B1A;
+}

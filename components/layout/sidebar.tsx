@@ -5,11 +5,15 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CheckSquare,
+  FileText,
   Globe,
   LayoutDashboard,
   LogOut,
   Settings,
+  Users,
+  ClipboardList,
 } from "lucide-react";
+import { SidebarQuickAccess } from "@/components/layout/sidebar-quick-access";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,11 +23,20 @@ import type { Profile } from "@/lib/types";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Building2 },
+  { href: "/templates", label: "Templates", icon: FileText },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/handoff", label: "Handoff", icon: ClipboardList },
+  { href: "/team", label: "Team", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar({ user }: { user: Profile | null }) {
+export function Sidebar({
+  user,
+  clientOptions = [],
+}: {
+  user: Profile | null;
+  clientOptions?: { id: string; company_name: string }[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -62,6 +75,8 @@ export function Sidebar({ user }: { user: Profile | null }) {
           );
         })}
       </nav>
+
+      <SidebarQuickAccess clients={clientOptions} />
 
       <div className="border-t border-sidebar-border p-4">
         <div className="mb-3 flex items-center gap-3">

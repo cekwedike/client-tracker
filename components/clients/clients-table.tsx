@@ -1,18 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { BillingBadge, StatusBadge } from "@/components/clients/billing-badge";
 import { LocalTimeBadge } from "@/components/clients/local-time-badge";
 import { PinButton, usePinnedClients } from "@/components/clients/pin-button";
-import { ResponseTemplateSnippet } from "@/components/clients/response-template-snippet";
+import { ClientHealthIndicator } from "@/components/clients/client-health-indicator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSettings } from "@/components/providers/settings-provider";
 import { MotionFadeUp } from "@/components/layout/motion";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { buildCcLeadBlock } from "@/lib/client-copy";
+import {
+  buildHealthContext,
+  computeClientHealth,
+} from "@/lib/client-health";
 import { sortClientsWithPinned } from "@/lib/pinned-clients";
-import type { ClientWithRelations } from "@/lib/types";
+import type { ClientWithRelations, Task } from "@/lib/types";
 import {
   compareClientsByContactWindow,
   formatClientLocation,
@@ -51,20 +56,26 @@ function sortByContactWindow(clients: ClientWithRelations[]) {
   return [...clients].sort(compareClientsByContactWindow);
 }
 
-function ClientRow({
+const ClientRow = memo(function ClientRow({
   client,
   index,
   compact,
   reduceMotion,
   selected,
+  checked,
+  health,
   onSelect,
+  onToggleCheck,
 }: {
   client: ClientWithRelations;
   index: number;
   compact: boolean;
   reduceMotion: boolean | null;
   selected: boolean;
+  checked: boolean;
+  health: ReturnType<typeof computeClientHealth>;
   onSelect: (client: ClientWithRelations) => void;
+  onToggleCheck: (clientId: string) => void;
 }) {
   const ccContact = getDefaultCcContact(client);
   const phone = getPrimaryPhone(client, ccContact);
@@ -119,6 +130,16 @@ function ClientRow({
               : { y: -2, transition: { duration: 0.2 } }
           }
         >
+          <div className="mb-2 flex items-center gap-2">
+            <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={checked}
+                onCheckedChange={() => onToggleCheck(client.id)}
+                aria-label={`Select ${companyName}`}
+              />
+            </span>
+            <ClientHealthIndicator health={health} />
+          </div>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch xl:justify-between">
             <div className="min-w-0 xl:w-[28%]">
               <div className="flex flex-wrap items-center gap-2">
@@ -160,11 +181,11 @@ function ClientRow({
                   href={client.smartlead_inbox_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex min-h-11 items-center gap-1 text-xs text-primary/90 transition-colors hover:text-primary"
+                  className="mt-2 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="h-3 w-3" />
-                  Smartlead Inbox
+                  Open inbox
                 </a>
               )}
             </div>
@@ -180,11 +201,6 @@ function ClientRow({
                   CC in positive responses
                 </p>
                 <div className="flex items-center gap-1">
-                  <ResponseTemplateSnippet
-                    client={client}
-                    ccContact={ccContact}
-                    compact
-                  />
                   {ccBlock && (
                     <CopyButton
                       value={ccBlock}
@@ -285,15 +301,23 @@ function ClientRow({
       </motion.div>
     </MotionFadeUp>
   );
-}
+});
 
 export function ClientsTable({
   clients,
+  tasks = [],
   selectedClientId,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
   onSelectClient,
 }: {
   clients: ClientWithRelations[];
+  tasks?: Task[];
   selectedClientId?: string | null;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (clientId: string) => void;
+  onToggleSelectAll?: (ids: string[]) => void;
   onSelectClient: (client: ClientWithRelations) => void;
 }) {
   const { density } = useSettings();
@@ -301,13 +325,14 @@ export function ClientsTable({
   const compact = density === "compact";
   const { pinnedIds } = usePinnedClients();
   const [sortTick, setSortTick] = useState(0);
+  const healthContext = useMemo(() => buildHealthContext(tasks), [tasks]);
 
   useEffect(() => {
     const interval = setInterval(() => setSortTick((t) => t + 1), 60_000);
     return () => clearInterval(interval);
   }, []);
 
-  const { pinned, rest } = useMemo(() => {
+  const sortedClients = useMemo(() => {
     void sortTick;
     const { pinned: rawPinned, rest: rawRest } = sortClientsWithPinned(
       clients,
@@ -318,6 +343,10 @@ export function ClientsTable({
       rest: sortByContactWindow(rawRest),
     };
   }, [clients, pinnedIds, sortTick]);
+
+  const { pinned, rest } = sortedClients;
+  const allIds = clients.map((c) => c.id);
+  const selection = selectedIds ?? new Set<string>();
 
   if (clients.length === 0) {
     return (
@@ -335,6 +364,16 @@ export function ClientsTable({
 
   return (
     <div className="space-y-6">
+      {onToggleSelectAll && clients.length > 0 && (
+        <div className="flex items-center gap-2 px-1">
+          <Checkbox
+            checked={allIds.length > 0 && allIds.every((id) => selection.has(id))}
+            onCheckedChange={() => onToggleSelectAll(allIds)}
+            aria-label="Select all clients"
+          />
+          <span className="text-xs text-muted-foreground">Select all</span>
+        </div>
+      )}
       {pinned.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-1">
@@ -351,7 +390,10 @@ export function ClientsTable({
               compact={compact}
               reduceMotion={reduceMotion}
               selected={selectedClientId === client.id}
+              checked={selection.has(client.id)}
+              health={computeClientHealth(client, healthContext)}
               onSelect={onSelectClient}
+              onToggleCheck={onToggleSelect ?? (() => {})}
             />
           ))}
         </section>
@@ -371,7 +413,10 @@ export function ClientsTable({
             compact={compact}
             reduceMotion={reduceMotion}
             selected={selectedClientId === client.id}
+            checked={selection.has(client.id)}
+            health={computeClientHealth(client, healthContext)}
             onSelect={onSelectClient}
+            onToggleCheck={onToggleSelect ?? (() => {})}
           />
         ))}
       </section>

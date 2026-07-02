@@ -15,10 +15,17 @@ import {
 import { LiveClock } from "@/components/dashboard/live-clock";
 import { ClientStats } from "@/components/clients/client-stats";
 import { ContactWindowAlerts } from "@/components/dashboard/contact-window-alerts";
+import { NeedsAttentionWidget } from "@/components/dashboard/needs-attention-widget";
+import { RecentActivityFeed } from "@/components/dashboard/recent-activity-feed";
 import { MotionFadeUp, MotionStagger } from "@/components/layout/motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ClientWithRelations } from "@/lib/types";
+import type {
+  ActivityLogEntry,
+  ClientDashboardSummary,
+  ClientWithRelations,
+  Task,
+} from "@/lib/types";
 import {
   getTimezoneAbbreviation,
   getTimezoneRegion,
@@ -52,11 +59,11 @@ function SignalBars({ level, reduceMotion }: { level: number; reduceMotion: bool
   );
 }
 
-function TimezonePanel({ clients }: { clients: ClientWithRelations[] }) {
+function TimezonePanel({ clients }: { clients: ClientDashboardSummary[] }) {
   const reduceMotion = useReducedMotion();
 
   const tzGroups = clients.reduce<
-    Record<string, { count: number; clients: ClientWithRelations[] }>
+    Record<string, { count: number; clients: ClientDashboardSummary[] }>
   >((acc, client) => {
     const abbr = getTimezoneAbbreviation(client.timezone);
     if (!acc[abbr]) acc[abbr] = { count: 0, clients: [] };
@@ -133,6 +140,12 @@ function QuickActions() {
       icon: CheckSquare,
     },
     {
+      href: "/handoff",
+      label: "Handoff",
+      desc: "Shift summary for Slack",
+      icon: Users,
+    },
+    {
       href: "/settings",
       label: "Settings",
       desc: "Time format & display",
@@ -169,7 +182,15 @@ function QuickActions() {
   );
 }
 
-export function OpsDashboard({ clients }: { clients: ClientWithRelations[] }) {
+export function OpsDashboard({
+  clients,
+  tasks = [],
+  activity = [],
+}: {
+  clients: ClientDashboardSummary[] | ClientWithRelations[];
+  tasks?: Task[];
+  activity?: ActivityLogEntry[];
+}) {
   const reduceMotion = useReducedMotion();
   const ppl = clients.filter((c) => c.billing_model === "ppl").length;
   const ppm = clients.filter((c) => c.billing_model === "ppm").length;
@@ -266,6 +287,14 @@ export function OpsDashboard({ clients }: { clients: ClientWithRelations[] }) {
       <ClientStats clients={clients} />
 
       <ContactWindowAlerts clients={clients} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <NeedsAttentionWidget
+          clients={clients as ClientWithRelations[]}
+          tasks={tasks}
+        />
+        <RecentActivityFeed entries={activity} />
+      </div>
 
       <section>
         <div className="mb-4 flex items-center justify-between">

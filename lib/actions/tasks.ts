@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/actions/auth";
+import { logActivity } from "@/lib/actions/activity";
+import { canAssignTasks } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { taskSchema, type TaskFormValues } from "@/lib/validations/task";
 import type { Task } from "@/lib/types";
@@ -49,20 +52,63 @@ export async function createTask(values: TaskFormValues) {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await logActivity(
+    "task_created",
+    { title: parsed.title, client_id: parsed.client_id },
+    parsed.client_id ?? undefined,
+  );
+
   revalidatePath("/tasks");
   return data;
 }
 
 export async function updateTaskStatus(id: string, status: Task["status"]) {
   const supabase = await createClient();
+  const { data: task } = await supabase
+    .from("tasks")
+    .select("title, client_id, status")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
+
+  if (status === "done" && task && task.status !== "done") {
+    await logActivity(
+      "task_completed",
+      { title: task.title },
+      task.client_id ?? undefined,
+    );
+  }
+
   revalidatePath("/tasks");
 }
 
 export async function updateTask(id: string, values: Partial<TaskFormValues>) {
+  const user = await getCurrentUser();
+  if (values.assignee_id !== undefined && user && !canAssignTasks(user.role)) {
+    throw new Error("Only managers and admins can assign tasks");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").update(values).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/tasks");
+}
+
+export async function updateTaskAssignee(taskId: string, assigneeId: string | null) {
+  const user = await getCurrentUser();
+  if (!user || !canAssignTasks(user.role)) {
+    throw new Error("Only managers and admins can assign tasks");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tasks")
+    .update({ assignee_id: assigneeId })
+    .eq("id", taskId);
+
   if (error) throw new Error(error.message);
   revalidatePath("/tasks");
 }

@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { BillingBadge, StatusBadge } from "@/components/clients/billing-badge";
 import { CCPlaybookPanel } from "@/components/clients/cc-playbook";
+import { ActivityLogSection } from "@/components/clients/activity-log-section";
 import { LocalTimeBadge } from "@/components/clients/local-time-badge";
-import { ResponseTemplateSnippet } from "@/components/clients/response-template-snippet";
+import { ClientTemplatesPanel } from "@/components/templates/client-templates-panel";
+import { getClientTemplates } from "@/lib/actions/templates";
 import { buttonVariants } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Separator } from "@/components/ui/separator";
@@ -17,7 +20,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { buildCcLeadBlock } from "@/lib/client-copy";
-import type { ClientWithRelations } from "@/lib/types";
+import type { ClientWithRelations, MessageTemplate } from "@/lib/types";
 import { TIMEZONE_OPTIONS } from "@/lib/types";
 import {
   formatClientLocation,
@@ -53,6 +56,22 @@ export function ClientDetailSheet({
   onOpenChange,
 }: ClientDetailSheetProps) {
   const reduceMotion = useReducedMotion();
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+
+  useEffect(() => {
+    if (!client?.id || !open) return;
+    let cancelled = false;
+    getClientTemplates(client.id)
+      .then((data) => {
+        if (!cancelled) setTemplates(data);
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client?.id, open]);
 
   if (!client) {
     return (
@@ -226,7 +245,7 @@ export function ClientDetailSheet({
             <Separator />
 
             <section>
-              <ResponseTemplateSnippet client={client} ccContact={ccContact} />
+              <ClientTemplatesPanel client={client} templates={templates} />
             </section>
 
             <Separator />
@@ -234,6 +253,10 @@ export function ClientDetailSheet({
             <section>
               <CCPlaybookPanel contacts={client.contacts} />
             </section>
+
+            <Separator />
+
+            <ActivityLogSection clientId={client.id} />
 
             <Separator />
 
@@ -259,10 +282,10 @@ export function ClientDetailSheet({
                   href={client.smartlead_inbox_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  Smartlead Inbox
+                  Open inbox
                 </a>
               )}
             </section>
@@ -271,6 +294,17 @@ export function ClientDetailSheet({
 
         <div className="shrink-0 border-t border-border/60 bg-muted/20 px-5 py-3">
           <div className="flex flex-wrap gap-2">
+            {client.smartlead_inbox_url && (
+              <a
+                href={client.smartlead_inbox_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "default", size: "sm" })}
+              >
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                Open inbox
+              </a>
+            )}
             {ccBlock && (
               <CopyButton
                 value={ccBlock}

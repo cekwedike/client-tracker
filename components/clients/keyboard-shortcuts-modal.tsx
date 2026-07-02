@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 const SHORTCUTS = [
+  { keys: ["⌘/Ctrl", "K"], description: "Open command palette" },
   { keys: ["/"], description: "Focus client search" },
   { keys: ["Esc"], description: "Clear search and blur" },
   { keys: ["?"], description: "Show keyboard shortcuts" },

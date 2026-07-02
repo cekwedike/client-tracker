@@ -21,6 +21,7 @@ interface SettingsContextValue extends AppSettings {
   hydrated: boolean;
   setTimeFormat: (format: TimeFormat) => void;
   setDensity: (density: Density) => void;
+  setBrowserNotifications: (enabled: boolean) => void;
   resetSettings: () => void;
 }
 
@@ -62,6 +63,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setBrowserNotifications = useCallback((browserNotifications: boolean) => {
+    setSettings((prev) => {
+      const next = { ...prev, browserNotifications };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
   const resetSettings = useCallback(() => persist(DEFAULT_SETTINGS), [persist]);
 
   const value = useMemo(
@@ -70,9 +79,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       setTimeFormat,
       setDensity,
+      setBrowserNotifications,
       resetSettings,
     }),
-    [settings, hydrated, setTimeFormat, setDensity, resetSettings],
+    [settings, hydrated, setTimeFormat, setDensity, setBrowserNotifications, resetSettings],
   );
 
   return (

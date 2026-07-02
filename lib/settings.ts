@@ -4,11 +4,13 @@ export type Density = "compact" | "comfortable";
 export interface AppSettings {
   timeFormat: TimeFormat;
   density: Density;
+  browserNotifications: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   timeFormat: "24h",
   density: "comfortable",
+  browserNotifications: false,
 };
 
 export const SETTINGS_STORAGE_KEY = "meridian-settings";
@@ -22,6 +24,7 @@ export function loadSettings(): AppSettings {
     return {
       timeFormat: parsed.timeFormat === "12h" ? "12h" : "24h",
       density: parsed.density === "compact" ? "compact" : "comfortable",
+      browserNotifications: parsed.browserNotifications === true,
     };
   } catch {
     return DEFAULT_SETTINGS;

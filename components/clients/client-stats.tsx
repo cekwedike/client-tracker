@@ -1,7 +1,7 @@
 "use client";
 
 import { Building2, Clock, Target, Users } from "lucide-react";
-import type { ClientWithRelations } from "@/lib/types";
+import type { ClientDashboardSummary, ClientWithRelations } from "@/lib/types";
 import { getTimezoneAbbreviation } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { MotionCard, MotionStagger } from "@/components/layout/motion";
@@ -51,7 +51,11 @@ function StatCard({
   );
 }
 
-export function ClientStats({ clients }: { clients: ClientWithRelations[] }) {
+export function ClientStats({
+  clients,
+}: {
+  clients: ClientDashboardSummary[] | ClientWithRelations[];
+}) {
   const ppl = clients.filter((c) => c.billing_model === "ppl").length;
   const ppm = clients.filter((c) => c.billing_model === "ppm").length;
   const active = clients.filter((c) => c.status === "active").length;

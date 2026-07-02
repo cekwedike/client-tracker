@@ -14,8 +14,27 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   role: UserRole;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  body: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientTemplateLink {
+  client_id: string;
+  client?: Pick<Client, "id" | "company_name"> | null;
+}
+
+export interface MessageTemplateWithClients extends MessageTemplate {
+  client_templates?: ClientTemplateLink[];
 }
 
 export interface Client {
@@ -129,11 +148,52 @@ export interface Report {
   author?: Profile | null;
 }
 
+export type ActivityAction =
+  | "owner_changed"
+  | "template_assigned"
+  | "task_created"
+  | "task_completed"
+  | "note_added"
+  | "client_edited"
+  | "client_created"
+  | "bulk_action";
+
+export interface ActivityLogEntry {
+  id: string;
+  user_id: string | null;
+  client_id: string | null;
+  action: ActivityAction | string;
+  details: Record<string, unknown>;
+  created_at: string;
+  user?: Profile | null;
+  client?: Pick<Client, "id" | "company_name"> | null;
+}
+
 export interface ClientWithRelations extends Client {
   contacts: Contact[];
   business_hours: BusinessHour[];
   primary_owner?: Profile | null;
 }
+
+/** Subset of client fields used on dashboard (lighter query) */
+export type ClientDashboardSummary = Pick<
+  Client,
+  | "id"
+  | "company_name"
+  | "primary_contact_name"
+  | "status"
+  | "billing_model"
+  | "city"
+  | "state_region"
+  | "timezone"
+  | "do_not_contact_before"
+  | "do_not_contact_after"
+  | "smartlead_inbox_url"
+> & {
+  contacts: Contact[];
+  business_hours: BusinessHour[];
+  primary_owner?: Profile | null;
+};
 
 export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [
   { value: "backlog", label: "Backlog" },

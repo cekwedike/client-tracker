@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/site-url";
+import { canChangeRole } from "@/lib/permissions";
 import type { Profile, UserRole } from "@/lib/types";
 
 export async function getAuthUser() {
@@ -96,7 +97,7 @@ export async function signOut() {
 export async function updateUserRole(userId: string, role: UserRole) {
   const supabase = await createClient();
   const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "admin") {
+  if (!currentUser || !canChangeRole(currentUser.role)) {
     throw new Error("Only admins can update roles");
   }
 
