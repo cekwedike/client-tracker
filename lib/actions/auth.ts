@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/lib/site-url";
 import type { Profile, UserRole } from "@/lib/types";
 
 export async function getAuthUser() {
@@ -80,7 +81,7 @@ export async function signUp(
     password,
     options: {
       data: { full_name: fullName, role: "operator" },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
     },
   });
   if (error) throw new Error(error.message);

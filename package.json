@@ -21,6 +21,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase db reset",
+    "db:push": "supabase db push",
     "db:setup": "node scripts/write-local-env.mjs"
   },
   "dependencies": {
