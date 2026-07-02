@@ -28,7 +28,7 @@ export function ClientOwnerSelect({
 }: ClientOwnerSelectProps) {
   const [isPending, startTransition] = useTransition();
 
-  const handleChange = (value: string) => {
+  const handleChange = (value: string | null) => {
     const ownerId = value || null;
     startTransition(async () => {
       try {

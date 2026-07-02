@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,29 +10,28 @@ import {
 } from "@/lib/pinned-clients";
 import { cn } from "@/lib/utils";
 
+function subscribePinned(onChange: () => void) {
+  window.addEventListener(PINNED_CLIENTS_EVENT, onChange);
+  return () => window.removeEventListener(PINNED_CLIENTS_EVENT, onChange);
+}
+
 interface PinButtonProps {
   clientId: string;
   className?: string;
 }
 
 export function PinButton({ clientId, className }: PinButtonProps) {
-  const [pinned, setPinned] = useState(false);
-
-  useEffect(() => {
-    setPinned(getPinnedClientIds().includes(clientId));
-    const handler = () => {
-      setPinned(getPinnedClientIds().includes(clientId));
-    };
-    window.addEventListener(PINNED_CLIENTS_EVENT, handler);
-    return () => window.removeEventListener(PINNED_CLIENTS_EVENT, handler);
-  }, [clientId]);
+  const pinned = useSyncExternalStore(
+    subscribePinned,
+    () => getPinnedClientIds().includes(clientId),
+    () => false,
+  );
 
   const handleToggle = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      const next = togglePinnedClient(clientId);
-      setPinned(next.includes(clientId));
+      togglePinnedClient(clientId);
     },
     [clientId],
   );
@@ -57,18 +56,12 @@ export function PinButton({ clientId, className }: PinButtonProps) {
 }
 
 export function usePinnedClients() {
-  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const pinnedKey = useSyncExternalStore(
+    subscribePinned,
+    () => getPinnedClientIds().join(","),
+    () => "",
+  );
 
-  useEffect(() => {
-    const sync = () => setPinnedIds(getPinnedClientIds());
-    sync();
-    window.addEventListener(PINNED_CLIENTS_EVENT, sync);
-    return () => window.removeEventListener(PINNED_CLIENTS_EVENT, sync);
-  }, []);
-
-  const refresh = useCallback(() => {
-    setPinnedIds(getPinnedClientIds());
-  }, []);
-
-  return { pinnedIds, refresh };
+  const pinnedIds = pinnedKey ? pinnedKey.split(",").filter(Boolean) : [];
+  return { pinnedIds };
 }
