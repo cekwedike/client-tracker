@@ -29,7 +29,7 @@ const PAGES = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/handoff", label: "Handoff", icon: Users },
+  { href: "/team", label: "Team", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

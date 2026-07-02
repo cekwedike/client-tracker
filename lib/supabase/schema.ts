@@ -1,7 +1,27 @@
 import { createServerClient } from "@supabase/ssr";
+import type { PostgrestError } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+/** True when PostgREST/Postgres reports a missing table, column, or schema cache entry. */
+export function isMissingSchemaError(
+  error: Pick<PostgrestError, "message" | "code">,
+  ...relationNames: string[]
+): boolean {
+  const msg = error.message.toLowerCase();
+  const looksMissing =
+    msg.includes("schema cache") ||
+    msg.includes("does not exist") ||
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    error.code === "42703";
+
+  if (!looksMissing) return false;
+  if (relationNames.length === 0) return true;
+
+  return relationNames.some((name) => msg.includes(name.toLowerCase()));
+}
 
 export async function checkDatabaseReady(
   supabase?: SupabaseClient,

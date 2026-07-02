@@ -9,6 +9,7 @@ import {
   canManageTemplates,
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingSchemaError } from "@/lib/supabase/schema";
 import type { MessageTemplate, MessageTemplateWithClients } from "@/lib/types";
 
 const templateSchema = z.object({
@@ -29,7 +30,14 @@ export async function getMessageTemplates(): Promise<MessageTemplateWithClients[
     )
     .order("name");
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (
+      isMissingSchemaError(error, "message_templates", "client_templates")
+    ) {
+      return [];
+    }
+    throw new Error(error.message);
+  }
   return (data ?? []) as MessageTemplateWithClients[];
 }
 
@@ -40,7 +48,14 @@ export async function getClientTemplates(clientId: string): Promise<MessageTempl
     .select("template:message_templates(*)")
     .eq("client_id", clientId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (
+      isMissingSchemaError(error, "message_templates", "client_templates")
+    ) {
+      return [];
+    }
+    throw new Error(error.message);
+  }
   return (data ?? []).map((row) => row.template as unknown as MessageTemplate);
 }
 

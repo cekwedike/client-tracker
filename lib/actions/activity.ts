@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isMissingSchemaError } from "@/lib/supabase/schema";
 import type { ActivityAction, ActivityLogEntry } from "@/lib/types";
 
 export async function logActivity(
@@ -38,7 +39,7 @@ export async function getRecentActivity(limit = 20): Promise<ActivityLogEntry[]>
     .limit(limit);
 
   if (error) {
-    if (error.message.toLowerCase().includes("activity_log")) return [];
+    if (isMissingSchemaError(error, "activity_log")) return [];
     throw new Error(error.message);
   }
   return (data ?? []) as ActivityLogEntry[];
@@ -62,7 +63,7 @@ export async function getClientActivity(
     .limit(limit);
 
   if (error) {
-    if (error.message.toLowerCase().includes("activity_log")) return [];
+    if (isMissingSchemaError(error, "activity_log")) return [];
     throw new Error(error.message);
   }
   return (data ?? []) as ActivityLogEntry[];

@@ -9,17 +9,53 @@ import {
   canRemoveMember,
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingSchemaError } from "@/lib/supabase/schema";
 import type { Profile, UserRole } from "@/lib/types";
+
+const PROFILE_COLUMNS =
+  "id, email, full_name, avatar_url, role, created_at, updated_at, is_active";
+const PROFILE_COLUMNS_BASE =
+  "id, email, full_name, avatar_url, role, created_at, updated_at";
+
+function mergeCurrentUser(members: Profile[], currentUser: Profile | null): Profile[] {
+  if (!currentUser) return members;
+  if (members.some((m) => m.id === currentUser.id)) return members;
+  return [currentUser, ...members];
+}
 
 export async function getTeamMembers(): Promise<Profile[]> {
   const supabase = await createClient();
+  const currentUser = await getCurrentUser();
+
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(PROFILE_COLUMNS)
     .order("full_name");
 
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Profile[];
+  if (!error) {
+    return mergeCurrentUser((data ?? []) as Profile[], currentUser);
+  }
+
+  if (isMissingSchemaError(error, "is_active")) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("profiles")
+      .select(PROFILE_COLUMNS_BASE)
+      .order("full_name");
+
+    if (!fallbackError) {
+      return mergeCurrentUser((fallbackData ?? []) as Profile[], currentUser);
+    }
+
+    if (!isMissingSchemaError(fallbackError, "profiles")) {
+      return mergeCurrentUser([], currentUser);
+    }
+  }
+
+  if (isMissingSchemaError(error, "profiles")) {
+    return mergeCurrentUser([], currentUser);
+  }
+
+  return mergeCurrentUser([], currentUser);
 }
 
 export async function updateMemberRole(userId: string, role: UserRole) {
@@ -82,7 +118,14 @@ export async function removeTeamMember(userId: string) {
     .update({ is_active: false })
     .eq("id", userId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingSchemaError(error, "is_active")) {
+      throw new Error(
+        "Member removal requires migration 002 (is_active column). Run it in the Supabase SQL editor.",
+      );
+    }
+    throw new Error(error.message);
+  }
   revalidatePath("/team");
   return { success: true };
 }
@@ -99,7 +142,14 @@ export async function reactivateTeamMember(userId: string) {
     .update({ is_active: true })
     .eq("id", userId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingSchemaError(error, "is_active")) {
+      throw new Error(
+        "Member reactivation requires migration 002 (is_active column). Run it in the Supabase SQL editor.",
+      );
+    }
+    throw new Error(error.message);
+  }
   revalidatePath("/team");
   return { success: true };
 }

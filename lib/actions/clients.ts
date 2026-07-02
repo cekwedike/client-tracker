@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/actions/activity";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingSchemaError } from "@/lib/supabase/schema";
 import { getDefaultBusinessHours } from "@/lib/timezone";
 import {
   clientSchema,
@@ -365,9 +366,21 @@ export async function getProfiles() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, email, full_name, avatar_url, role, created_at, updated_at, is_active")
     .order("full_name");
 
-  if (error) throw new Error(error.message);
-  return data;
+  if (!error) return data;
+
+  if (isMissingSchemaError(error, "is_active")) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, avatar_url, role, created_at, updated_at")
+      .order("full_name");
+
+    if (!fallbackError) return fallbackData;
+    if (isMissingSchemaError(fallbackError, "profiles")) return [];
+  }
+
+  if (isMissingSchemaError(error, "profiles")) return [];
+  throw new Error(error.message);
 }

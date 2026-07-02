@@ -11,7 +11,6 @@ import {
   LogOut,
   Settings,
   Users,
-  ClipboardList,
 } from "lucide-react";
 import { SidebarQuickAccess } from "@/components/layout/sidebar-quick-access";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,6 @@ const navItems = [
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/templates", label: "Templates", icon: FileText },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/handoff", label: "Handoff", icon: ClipboardList },
   { href: "/team", label: "Team", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

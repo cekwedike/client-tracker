@@ -136,13 +136,13 @@ function QuickActions() {
     {
       href: "/tasks",
       label: "Task Queue",
-      desc: "Follow-ups & handoffs",
+      desc: "Follow-ups & assignments",
       icon: CheckSquare,
     },
     {
-      href: "/handoff",
-      label: "Handoff",
-      desc: "Shift summary for Slack",
+      href: "/team",
+      label: "Team",
+      desc: "Roles & members",
       icon: Users,
     },
     {

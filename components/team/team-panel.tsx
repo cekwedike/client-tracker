@@ -158,7 +158,22 @@ export function TeamPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((member) => {
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={isAdmin ? 5 : 4}
+                  className="py-12 text-center text-sm text-muted-foreground"
+                >
+                  <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                  <p>No team members yet.</p>
+                  <p className="mt-1 text-xs">
+                    You should appear here after signup — if you are logged in but
+                    see this, your profile row may be missing from the database.
+                  </p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              members.map((member) => {
               const inactive = member.is_active === false;
               const isSelf = member.id === currentUserId;
               return (
@@ -250,7 +265,8 @@ export function TeamPanel({
                   )}
                 </TableRow>
               );
-            })}
+            })
+            )}
           </TableBody>
         </Table>
       </div>
