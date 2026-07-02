@@ -5,12 +5,16 @@ import { BillingBadge, StatusBadge } from "@/components/clients/billing-badge";
 import { LocalTimeBadge } from "@/components/clients/local-time-badge";
 import { CCPlaybookPanel } from "@/components/clients/cc-playbook";
 import { ClientNotes } from "@/components/clients/client-notes";
-import { getClient, getClientNotes } from "@/lib/actions/clients";
+import { ClientOwnerSelect } from "@/components/clients/client-owner-select";
+import { ClientSummaryCopyFields } from "@/components/clients/client-summary-copy";
+import { ContactCard } from "@/components/clients/contact-card";
+import { ResponseTemplateSnippet } from "@/components/clients/response-template-snippet";
+import { getClient, getClientNotes, getProfiles } from "@/lib/actions/clients";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DEAL_TYPES, TIMEZONE_OPTIONS } from "@/lib/types";
-import { ExternalLink, Mail, Pencil, Phone, User } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
 import { formatLocalDateTime, formatClientLocation } from "@/lib/timezone";
 
 interface PageProps {
@@ -22,8 +26,13 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
   let client;
   let notes;
+  let profiles;
   try {
-    [client, notes] = await Promise.all([getClient(id), getClientNotes(id)]);
+    [client, notes, profiles] = await Promise.all([
+      getClient(id),
+      getClientNotes(id),
+      getProfiles(),
+    ]);
   } catch {
     notFound();
   }
@@ -40,6 +49,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
     ccContact?.phone ?? primaryContact?.phone ?? client.contacts.find((c) => c.phone)?.phone;
   const displayEmail =
     ccContact?.email ?? primaryContact?.email ?? client.contacts.find((c) => c.email)?.email;
+  const location = formatClientLocation(client.city, client.state_region, client.timezone);
 
   return (
     <>
@@ -89,61 +99,27 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
               <Separator />
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Primary Contact</p>
-                    <p className="font-medium">{client.primary_contact_name ?? "—"}</p>
-                  </div>
-                </div>
-                {ccContact && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">CC in responses</p>
-                    <p className="font-medium text-primary">
-                      {ccContact.cc_alias ?? ccContact.name}
-                    </p>
-                  </div>
-                )}
-                {displayEmail && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <a
-                      href={`mailto:${displayEmail}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {displayEmail}
-                    </a>
-                  </div>
-                )}
-                {displayPhone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <a
-                      href={`tel:${displayPhone.replace(/[^\d+]/g, "")}`}
-                      className="font-medium hover:text-primary"
-                    >
-                      {displayPhone}
-                    </a>
-                  </div>
-                )}
-                <div>
-                  <span className="text-muted-foreground">Location: </span>
-                  {formatClientLocation(client.city, client.state_region, client.timezone)}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Industry: </span>
-                  {client.industry ?? "—"}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Owner: </span>
-                  {client.primary_owner?.full_name ?? "Unassigned"}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">KPI Focus: </span>
-                  {dealInfo?.kpi ?? "—"}
-                </div>
-              </div>
+              <ClientOwnerSelect
+                clientId={id}
+                currentOwnerId={client.primary_owner_id}
+                currentOwnerName={client.primary_owner?.full_name}
+                profiles={profiles ?? []}
+              />
+
+              <Separator />
+
+              <ResponseTemplateSnippet client={client} ccContact={ccContact} />
+
+              <Separator />
+
+              <ClientSummaryCopyFields
+                client={client}
+                ccContact={ccContact}
+                displayEmail={displayEmail}
+                displayPhone={displayPhone}
+                location={location}
+                kpi={dealInfo?.kpi}
+              />
 
               {client.smartlead_inbox_url && (
                 <>
@@ -173,41 +149,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
                 {client.contacts.map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="rounded-lg border border-border/50 p-3 text-sm"
-                  >
-                    <p className="font-medium">{contact.name}</p>
-                    <p className="text-xs capitalize text-muted-foreground">
-                      {contact.role.replace("_", " ")}
-                    </p>
-                    {contact.email && (
-                      <a
-                        href={`mailto:${contact.email}`}
-                        className="mt-1 block text-primary hover:underline"
-                      >
-                        {contact.email}
-                      </a>
-                    )}
-                    {contact.phone && (
-                      <a
-                        href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
-                        className="block text-muted-foreground hover:text-foreground"
-                      >
-                        {contact.phone}
-                      </a>
-                    )}
-                    {contact.cc_alias && (
-                      <p className="mt-1 text-primary">
-                        Mention as: {contact.cc_alias}
-                      </p>
-                    )}
-                    {contact.special_instructions && (
-                      <p className="mt-2 text-amber-400/90 text-xs">
-                        {contact.special_instructions}
-                      </p>
-                    )}
-                  </div>
+                  <ContactCard key={contact.id} contact={contact} />
                 ))}
               </div>
             </CardContent>

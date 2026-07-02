@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { LiveClock } from "@/components/dashboard/live-clock";
 import { ClientStats } from "@/components/clients/client-stats";
+import { ContactWindowAlerts } from "@/components/dashboard/contact-window-alerts";
 import { MotionFadeUp, MotionStagger } from "@/components/layout/motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -263,6 +264,8 @@ export function OpsDashboard({ clients }: { clients: ClientWithRelations[] }) {
       </div>
 
       <ClientStats clients={clients} />
+
+      <ContactWindowAlerts clients={clients} />
 
       <section>
         <div className="mb-4 flex items-center justify-between">

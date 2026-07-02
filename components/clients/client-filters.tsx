@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/select";
 import { Search, SlidersHorizontal } from "lucide-react";
 
-export function ClientFilters() {
+interface ClientFiltersProps {
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  onClearSearch?: () => void;
+}
+
+export function ClientFilters({
+  searchInputRef,
+  onClearSearch,
+}: ClientFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -32,19 +40,33 @@ export function ClientFilters() {
     updateFilter("search", search);
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (!value && searchParams.get("search")) {
+      onClearSearch?.();
+    }
+  };
+
   return (
     <div className="mb-6 glass-panel p-4">
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <SlidersHorizontal className="h-3.5 w-3.5" />
-        Filters
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+        </div>
+        <span className="hidden text-[10px] text-subtle sm:inline">
+          Press <kbd className="rounded border border-border px-1 font-mono">/</kbd> to search ·{" "}
+          <kbd className="rounded border border-border px-1 font-mono">?</kbd> for shortcuts
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <form onSubmit={handleSearch} className="relative min-w-[200px] flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search company, contact, city..."
+            ref={searchInputRef}
+            placeholder="Search company, contact, CC, phone, email, city..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="border-border/80 bg-background/50 pl-9 text-foreground placeholder:text-muted-foreground"
           />
         </form>

@@ -35,10 +35,25 @@ export async function getClients(filters?: {
   if (filters?.status) {
     query = query.eq("status", filters.status);
   }
-  if (filters?.search) {
-    query = query.or(
-      `company_name.ilike.%${filters.search}%,primary_contact_name.ilike.%${filters.search}%,city.ilike.%${filters.search}%`,
-    );
+  if (filters?.search?.trim()) {
+    const term = filters.search.trim().replace(/[%_,]/g, "");
+    const { data: contactMatches } = await supabase
+      .from("contacts")
+      .select("client_id")
+      .or(
+        `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%,cc_alias.ilike.%${term}%`,
+      );
+
+    const contactClientIds = [
+      ...new Set(contactMatches?.map((c) => c.client_id) ?? []),
+    ];
+
+    const clientFields = `company_name.ilike.%${term}%,primary_contact_name.ilike.%${term}%,city.ilike.%${term}%`;
+    if (contactClientIds.length > 0) {
+      query = query.or(`${clientFields},id.in.(${contactClientIds.join(",")})`);
+    } else {
+      query = query.or(clientFields);
+    }
   }
 
   const { data, error } = await query;
@@ -215,6 +230,23 @@ export async function getClientNotes(clientId: string) {
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function updateClientOwner(
+  clientId: string,
+  ownerId: string | null,
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clients")
+    .update({ primary_owner_id: ownerId })
+    .eq("id", clientId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients");
+  revalidatePath("/dashboard");
+  revalidatePath(`/clients/${clientId}`);
+  return { success: true };
 }
 
 export async function getProfiles() {

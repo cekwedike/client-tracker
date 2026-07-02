@@ -6,6 +6,7 @@ import { MotionFadeUp } from "@/components/layout/motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, LayoutGrid, RotateCcw } from "lucide-react";
+import { SpreadsheetRefreshPanel } from "@/components/settings/spreadsheet-refresh-panel";
 import type { Profile } from "@/lib/types";
 
 function ToggleGroup<T extends string>({
@@ -127,6 +128,8 @@ export function SettingsPanel({ user }: { user: Profile }) {
           </div>
         </div>
       </MotionFadeUp>
+
+      {user.role === "admin" && <SpreadsheetRefreshPanel />}
 
       <MotionFadeUp delay={0.16}>
         <div className="flex justify-end">

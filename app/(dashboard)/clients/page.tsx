@@ -3,8 +3,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/sidebar";
 import { DashboardHero } from "@/components/layout/dashboard-hero";
 import { ClientStats } from "@/components/clients/client-stats";
-import { ClientsTable } from "@/components/clients/clients-table";
-import { ClientFilters } from "@/components/clients/client-filters";
+import { ClientsWorkspace } from "@/components/clients/clients-workspace";
 import { QuickAddClientDialog } from "@/components/clients/quick-add-dialog";
 import { getClients } from "@/lib/actions/clients";
 import { Button } from "@/components/ui/button";
@@ -44,10 +43,8 @@ export default async function ClientsPage({ searchParams }: PageProps) {
       <ClientStats clients={clients} />
 
       <Suspense fallback={<div className="mb-6 text-sm text-muted-foreground">Loading filters...</div>}>
-        <ClientFilters />
+        <ClientsWorkspace clients={clients} />
       </Suspense>
-
-      <ClientsTable clients={clients} />
     </>
   );
 }
