@@ -107,6 +107,7 @@ export async function createClientRecord(values: ClientFormValues) {
   });
 
   revalidatePath("/clients");
+  revalidatePath("/dashboard");
   return client;
 }
 
@@ -173,6 +174,7 @@ export async function updateClient(id: string, values: ClientFormValues) {
   }
 
   revalidatePath("/clients");
+  revalidatePath("/dashboard");
   revalidatePath(`/clients/${id}`);
   return { success: true };
 }
@@ -182,6 +184,7 @@ export async function deleteClient(id: string) {
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/clients");
+  revalidatePath("/dashboard");
 }
 
 export async function addClientNote(clientId: string, content: string) {

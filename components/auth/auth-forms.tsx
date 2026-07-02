@@ -34,7 +34,7 @@ export function LoginForm() {
     startTransition(async () => {
       try {
         await signIn(values.email, values.password);
-        router.push("/clients");
+        router.push("/dashboard");
         router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Login failed");

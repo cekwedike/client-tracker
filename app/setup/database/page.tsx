@@ -17,7 +17,7 @@ export default async function DatabaseSetupPage() {
   }
 
   if (await checkDatabaseReady()) {
-    redirect("/clients");
+    redirect("/dashboard");
   }
 
   return (
@@ -74,7 +74,7 @@ export default async function DatabaseSetupPage() {
                 Back in terminal: <code className="rounded bg-muted px-1">pnpm seed</code>{" "}
                 to import your 12 clients
               </li>
-              <li>Refresh this page or go to /clients</li>
+              <li>Refresh this page or go to /dashboard</li>
             </ol>
 
             <a

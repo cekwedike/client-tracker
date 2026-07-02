@@ -6,10 +6,9 @@ import {
   Building2,
   CheckSquare,
   Globe,
+  LayoutDashboard,
   LogOut,
-  MessageSquare,
-  FileText,
-  Users,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,11 +17,10 @@ import { signOut } from "@/lib/actions/auth";
 import type { Profile } from "@/lib/types";
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/reports", label: "Reports", icon: FileText },
-  { href: "/team", label: "Team", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar({ user }: { user: Profile | null }) {

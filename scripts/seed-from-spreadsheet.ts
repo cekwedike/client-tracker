@@ -36,7 +36,7 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     company_name: "Service Master Clean",
     primary_contact_name: "Amer Sharma",
     billing_model: "ppl",
-    timezone: mapAbbreviationToTimezone("EST"),
+    timezone: mapAbbreviationToTimezone("BST"),
     industry: "Commercial Cleaning",
     contacts: [
       {
@@ -50,7 +50,7 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
         name: "Amer Sharma",
         email: "amer@property-one.net",
         phone: "44 7305 821345",
-        cc_alias: "Amer",
+        cc_alias: "Arnav",
         is_default_cc: true,
       },
     ],
@@ -215,7 +215,7 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
       {
         role: "cc_manager",
         name: "Tara",
-        cc_alias: "Tara",
+        cc_alias: "Tiara",
         is_default_cc: true,
       },
     ],

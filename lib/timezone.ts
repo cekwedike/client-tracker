@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import type { TimeFormat } from "./settings";
 import type { BusinessHour, ContactWindowStatus } from "./types";
 
 export function mapAbbreviationToTimezone(abbrev: string): string {
@@ -12,6 +13,8 @@ export function mapAbbreviationToTimezone(abbrev: string): string {
     MDT: "America/Denver",
     PST: "America/Los_Angeles",
     PDT: "America/Los_Angeles",
+    BST: "Europe/London",
+    GMT: "Europe/London",
   };
   return map[abbrev.toUpperCase()] ?? "America/New_York";
 }
@@ -20,12 +23,22 @@ export function getLocalTime(timezone: string): DateTime {
   return DateTime.now().setZone(timezone);
 }
 
-export function formatLocalTime(timezone: string): string {
-  return getLocalTime(timezone).toFormat("HH:mm:ss");
+export function formatLocalTime(
+  timezone: string,
+  timeFormat: TimeFormat = "24h",
+): string {
+  const dt = getLocalTime(timezone);
+  return timeFormat === "12h" ? dt.toFormat("h:mm:ss a") : dt.toFormat("HH:mm:ss");
 }
 
-export function formatLocalDateTime(timezone: string): string {
-  return getLocalTime(timezone).toFormat("EEE, MMM d · HH:mm:ss");
+export function formatLocalDateTime(
+  timezone: string,
+  timeFormat: TimeFormat = "24h",
+): string {
+  const dt = getLocalTime(timezone);
+  const time =
+    timeFormat === "12h" ? dt.toFormat("h:mm:ss a") : dt.toFormat("HH:mm:ss");
+  return `${dt.toFormat("EEE, MMM d")} · ${time}`;
 }
 
 export function getTimezoneAbbreviation(timezone: string): string {
@@ -35,7 +48,7 @@ export function getTimezoneAbbreviation(timezone: string): string {
     "America/Denver": "MST",
     "America/Los_Angeles": "PST",
     "America/Phoenix": "MST",
-    "Europe/London": "GMT",
+    "Europe/London": "BST",
     "Asia/Dubai": "GST",
     "Asia/Singapore": "SGT",
   };

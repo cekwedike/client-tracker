@@ -79,7 +79,7 @@ export async function updateSession(request: NextRequest) {
         supabaseResponse.cookies.set(name, value, options),
     );
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = dbReady ? "/clients" : "/setup/database";
+    redirectUrl.pathname = dbReady ? "/dashboard" : "/setup/database";
     return NextResponse.redirect(redirectUrl);
   }
 

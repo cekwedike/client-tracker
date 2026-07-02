@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
+import { useSettings } from "@/components/providers/settings-provider";
 import {
   formatLocalTime,
   getContactWindowStatus,
@@ -29,6 +30,7 @@ export function LocalTimeBadge({
   doNotContactAfter?: string | null;
   showLabel?: boolean;
 }) {
+  const { timeFormat, hydrated } = useSettings();
   const [time, setTime] = useState("");
   const [windowStatus, setWindowStatus] = useState<{
     status: ContactWindowStatus;
@@ -37,7 +39,7 @@ export function LocalTimeBadge({
 
   useEffect(() => {
     const update = () => {
-      setTime(formatLocalTime(timezone));
+      setTime(formatLocalTime(timezone, timeFormat));
       setWindowStatus(
         getContactWindowStatus(
           timezone,
@@ -50,13 +52,21 @@ export function LocalTimeBadge({
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [timezone, businessHours, doNotContactBefore, doNotContactAfter]);
+  }, [
+    timezone,
+    businessHours,
+    doNotContactBefore,
+    doNotContactAfter,
+    timeFormat,
+  ]);
 
   return (
     <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
       <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 font-mono text-sm tabular-nums text-foreground">
         <Clock className="h-3.5 w-3.5 text-primary" />
-        <span className="min-w-[4.5rem] tracking-wide">{time || "—:—:—"}</span>
+        <span className="min-w-[5.5rem] tracking-wide">
+          {!hydrated ? "—:—:—" : time || "—:—:—"}
+        </span>
       </div>
       {showLabel && (
         <Badge

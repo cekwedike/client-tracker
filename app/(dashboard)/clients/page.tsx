@@ -30,7 +30,7 @@ export default async function ClientsPage({ searchParams }: PageProps) {
       <DashboardHero>
         <PageHeader
           title="Clients"
-          description="Client operations hub — inbox timing, contacts, and deal types at a glance"
+          description="Ops reference — CC names, phones, emails, and live local times for lead responses"
         >
           <Link href="/clients/new">
             <Button variant="outline" className="border-border/80 bg-background/40 text-foreground hover:bg-muted">
