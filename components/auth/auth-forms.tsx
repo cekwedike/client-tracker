@@ -57,12 +57,12 @@ export function LoginForm() {
             <Label>Password</Label>
             <Input type="password" {...form.register("password")} />
           </div>
-          <Button type="submit" className="w-full bg-emerald-700" disabled={isPending}>
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Signing in..." : "Sign In"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             No account?{" "}
-            <Link href="/signup" className="text-emerald-400 hover:underline">
+            <Link href="/signup" className="text-primary hover:underline">
               Sign up
             </Link>
           </p>
@@ -111,12 +111,12 @@ export function SignupForm() {
             <Label>Password</Label>
             <Input type="password" {...form.register("password")} />
           </div>
-          <Button type="submit" className="w-full bg-emerald-700" disabled={isPending}>
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Creating..." : "Create Account"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-emerald-400 hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               Sign in
             </Link>
           </p>

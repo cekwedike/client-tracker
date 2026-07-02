@@ -111,7 +111,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                     href={client.smartlead_inbox_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-emerald-400 hover:underline"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
                   >
                     <ExternalLink className="h-4 w-4" />
                     Open Inbox Link
@@ -145,7 +145,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                       <p className="text-muted-foreground">{contact.phone}</p>
                     )}
                     {contact.cc_alias && (
-                      <p className="mt-1 text-emerald-400">
+                      <p className="mt-1 text-primary">
                         Mention as: {contact.cc_alias}
                       </p>
                     )}

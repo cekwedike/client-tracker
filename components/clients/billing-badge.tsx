@@ -9,8 +9,8 @@ export function BillingBadge({ model }: { model: BillingModel }) {
       className={cn(
         "text-xs font-medium",
         model === "ppl"
-          ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
-          : "border-purple-500/30 bg-purple-500/10 text-purple-400",
+          ? "border-deal-ppl/30 bg-deal-ppl/10 text-deal-ppl-fg"
+          : "border-deal-ppm/30 bg-deal-ppm/10 text-deal-ppm-fg",
       )}
     >
       {model === "ppl" ? "PPL" : "PPM"}
@@ -20,9 +20,9 @@ export function BillingBadge({ model }: { model: BillingModel }) {
 
 export function StatusBadge({ status }: { status: ClientStatus }) {
   const styles: Record<ClientStatus, string> = {
-    active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-    paused: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    churned: "border-red-500/30 bg-red-500/10 text-red-400",
+    active: "border-primary/30 bg-primary/10 text-primary",
+    paused: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    churned: "border-red-500/30 bg-red-500/10 text-red-300",
   };
 
   return (

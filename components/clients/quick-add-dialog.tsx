@@ -65,7 +65,7 @@ export function QuickAddClientDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button className="gap-2 bg-emerald-700 hover:bg-emerald-600" />}
+        render={<Button className="gap-2" />}
       >
         <Plus className="h-4 w-4" />
         Quick Add
@@ -134,7 +134,7 @@ export function QuickAddClientDialog() {
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full bg-emerald-700" disabled={isPending}>
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Adding..." : "Add Client"}
           </Button>
         </form>

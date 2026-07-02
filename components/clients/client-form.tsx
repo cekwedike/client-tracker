@@ -396,7 +396,7 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" className="bg-emerald-700 hover:bg-emerald-600" disabled={isPending}>
+        <Button type="submit" disabled={isPending}>
           {isPending ? "Saving..." : isEdit ? "Update Client" : "Create Client"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>

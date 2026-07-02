@@ -13,8 +13,8 @@ export default function SetupPage() {
     <div className="dark min-h-screen bg-background p-6">
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-700">
-            <Globe className="h-6 w-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <Globe className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Meridian Setup</h1>
@@ -45,7 +45,7 @@ export default function SetupPage() {
               Requires{" "}
               <a
                 href="https://docs.docker.com/get-docker/"
-                className="text-emerald-400 hover:underline"
+                className="text-primary hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -75,7 +75,7 @@ pnpm dev`}
                 Create a project at{" "}
                 <a
                   href="https://supabase.com/dashboard"
-                  className="inline-flex items-center gap-1 text-emerald-400 hover:underline"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

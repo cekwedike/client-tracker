@@ -29,14 +29,18 @@ export function Sidebar({ user }: { user: Profile | null }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-2 border-b border-sidebar-border px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-700">
-          <Globe className="h-5 w-5 text-white" />
+    <aside className="relative z-20 flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
+      <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[oklch(0.55_0.12_85)] shadow-lg shadow-black/40">
+          <Globe className="h-5 w-5 text-primary-foreground" />
         </div>
         <div>
-          <p className="text-sm font-semibold tracking-tight">Meridian</p>
-          <p className="text-xs text-sidebar-foreground/60">PLNITUDE Ops</p>
+          <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+            Meridian
+          </p>
+          <p className="text-xs text-subtle">PLNITUDE Ops</p>
         </div>
       </div>
 
@@ -48,13 +52,13 @@ export function Sidebar({ user }: { user: Profile | null }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                 active
-                  ? "bg-emerald-700/20 text-emerald-400"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_oklch(0.72_0.14_85_/_20%)]"
+                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground",
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className={cn("h-4 w-4", active && "text-primary")} />
               {item.label}
             </Link>
           );
@@ -63,16 +67,16 @@ export function Sidebar({ user }: { user: Profile | null }) {
 
       <div className="border-t border-sidebar-border p-4">
         <div className="mb-3 flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-emerald-800 text-xs text-white">
+          <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+            <AvatarFallback className="bg-[oklch(0.55_0.12_85)] text-xs text-primary-foreground">
               {user?.full_name?.[0]?.toUpperCase() ?? "U"}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
               {user?.full_name ?? "User"}
             </p>
-            <p className="truncate text-xs text-sidebar-foreground/60 capitalize">
+            <p className="truncate text-xs text-subtle capitalize">
               {user?.role ?? "operator"}
             </p>
           </div>
@@ -82,7 +86,7 @@ export function Sidebar({ user }: { user: Profile | null }) {
             type="submit"
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 text-sidebar-foreground/70"
+            className="w-full justify-start gap-2 text-sidebar-foreground/85 hover:text-sidebar-foreground"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -103,11 +107,15 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         )}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}

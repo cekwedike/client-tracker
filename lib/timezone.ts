@@ -21,11 +21,11 @@ export function getLocalTime(timezone: string): DateTime {
 }
 
 export function formatLocalTime(timezone: string): string {
-  return getLocalTime(timezone).toFormat("h:mm a");
+  return getLocalTime(timezone).toFormat("HH:mm:ss");
 }
 
 export function formatLocalDateTime(timezone: string): string {
-  return getLocalTime(timezone).toFormat("EEE, MMM d · h:mm a");
+  return getLocalTime(timezone).toFormat("EEE, MMM d · HH:mm:ss");
 }
 
 export function getTimezoneAbbreviation(timezone: string): string {

@@ -24,8 +24,8 @@ export default async function DatabaseSetupPage() {
     <div className="dark min-h-screen bg-background p-6">
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-700">
-            <Globe className="h-6 w-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <Globe className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-2xl font-semibold">One more step</h1>
@@ -81,7 +81,7 @@ export default async function DatabaseSetupPage() {
               href="https://supabase.com/dashboard/project/_/sql/new"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-emerald-400 hover:underline"
+              className="inline-flex items-center gap-2 text-primary hover:underline"
             >
               Open Supabase SQL Editor <ExternalLink className="h-3.5 w-3.5" />
             </a>

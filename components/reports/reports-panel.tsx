@@ -126,7 +126,7 @@ function DailyHandoffForm() {
             <Label>Additional Notes</Label>
             <Textarea {...form.register("notes")} rows={2} />
           </div>
-          <Button type="submit" className="bg-emerald-700" disabled={isPending}>
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Posting..." : "Post Handoff"}
           </Button>
         </form>
@@ -210,7 +210,7 @@ function WeeklyReportForm({
             <Label>KPI Notes (PPL/PPM)</Label>
             <Textarea {...form.register("kpi_notes")} rows={2} />
           </div>
-          <Button type="submit" className="gap-2 bg-emerald-700" disabled={isPending}>
+          <Button type="submit" className="gap-2" disabled={isPending}>
             <Download className="h-4 w-4" />
             {isPending ? "Generating..." : "Generate & Download"}
           </Button>

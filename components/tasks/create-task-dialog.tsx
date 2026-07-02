@@ -71,7 +71,7 @@ export function CreateTaskDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button className="gap-2 bg-emerald-700 hover:bg-emerald-600" />}
+        render={<Button className="gap-2" />}
       >
         <Plus className="h-4 w-4" />
         New Task
@@ -143,7 +143,7 @@ export function CreateTaskDialog({
               <Input type="datetime-local" {...form.register("due_at")} />
             </div>
           </div>
-          <Button type="submit" className="w-full bg-emerald-700" disabled={isPending}>
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Creating..." : "Create Task"}
           </Button>
         </form>

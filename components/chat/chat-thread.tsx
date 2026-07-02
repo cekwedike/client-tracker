@@ -29,7 +29,7 @@ export function ChannelList({
           className={cn(
             "block rounded-lg px-3 py-2 text-sm transition-colors",
             activeSlug === channel.slug
-              ? "bg-emerald-700/20 text-emerald-400"
+              ? "bg-primary/20 text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -120,7 +120,7 @@ export function ChatThread({
           {messages.map((msg) => (
             <div key={msg.id} className="flex gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-emerald-800 text-xs text-white">
+                <AvatarFallback className="bg-[oklch(0.55_0.12_85)] text-xs text-primary-foreground">
                   {msg.author?.full_name?.[0]?.toUpperCase() ?? "?"}
                 </AvatarFallback>
               </Avatar>
@@ -158,7 +158,6 @@ export function ChatThread({
           <Button
             onClick={handleSend}
             disabled={isPending || !content.trim()}
-            className="bg-emerald-700"
           >
             <Send className="h-4 w-4" />
           </Button>

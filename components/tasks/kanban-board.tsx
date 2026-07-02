@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const priorityColors = {
-  low: "border-slate-500/30",
-  medium: "border-blue-500/30",
+  low: "border-muted-foreground/30",
+  medium: "border-deal-ppl/30",
   high: "border-amber-500/30",
   urgent: "border-red-500/30",
 };
@@ -73,7 +73,7 @@ function KanbanColumn({
             <CardHeader className="p-3 pb-1">
               <p className="text-sm font-medium leading-snug">{task.title}</p>
               {task.client && (
-                <p className="text-xs text-emerald-400">{task.client.company_name}</p>
+                <p className="text-xs text-primary">{task.client.company_name}</p>
               )}
             </CardHeader>
             <CardContent className="p-3 pt-1">
@@ -122,7 +122,7 @@ export function TaskList({ tasks, title }: { tasks: Task[]; title?: string }) {
             <div>
               <p className="font-medium">{task.title}</p>
               {task.client && (
-                <p className="text-sm text-emerald-400">{task.client.company_name}</p>
+                <p className="text-sm text-primary">{task.client.company_name}</p>
               )}
               {task.description && (
                 <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>

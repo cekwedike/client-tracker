@@ -45,7 +45,7 @@ export function ClientNotes({
         <Button
           onClick={handleAdd}
           disabled={isPending || !content.trim()}
-          className="shrink-0 bg-emerald-700"
+          className="shrink-0"
         >
           Add
         </Button>

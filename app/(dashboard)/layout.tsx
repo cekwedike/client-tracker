@@ -31,10 +31,18 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="dark flex h-screen bg-background">
+    <div className="flex h-screen bg-background">
       <Sidebar user={user} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl p-6">{children}</div>
+      <main className="relative flex-1 overflow-y-auto">
+        <div
+          className="pointer-events-none fixed inset-0 left-64 opacity-30"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.55 0.12 85 / 20%), transparent)",
+          }}
+        />
+        <div className="relative mx-auto max-w-7xl p-6 lg:p-8">{children}</div>
       </main>
       <Toaster />
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/sidebar";
+import { DashboardHero } from "@/components/layout/dashboard-hero";
 import { ClientStats } from "@/components/clients/client-stats";
 import { ClientsTable } from "@/components/clients/clients-table";
 import { ClientFilters } from "@/components/clients/client-filters";
@@ -26,19 +27,23 @@ export default async function ClientsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <PageHeader
-        title="Clients"
-        description="Client operations hub — inbox timing, contacts, and deal types at a glance"
-      >
-        <Link href="/clients/new">
-          <Button variant="outline">Full Form</Button>
-        </Link>
-        <QuickAddClientDialog />
-      </PageHeader>
+      <DashboardHero>
+        <PageHeader
+          title="Clients"
+          description="Client operations hub — inbox timing, contacts, and deal types at a glance"
+        >
+          <Link href="/clients/new">
+            <Button variant="outline" className="border-border/80 bg-background/40 text-foreground hover:bg-muted">
+              Full Form
+            </Button>
+          </Link>
+          <QuickAddClientDialog />
+        </PageHeader>
+      </DashboardHero>
 
       <ClientStats clients={clients} />
 
-      <Suspense fallback={<div className="text-sm text-muted-foreground">Loading filters...</div>}>
+      <Suspense fallback={<div className="mb-6 text-sm text-muted-foreground">Loading filters...</div>}>
         <ClientFilters />
       </Suspense>
 

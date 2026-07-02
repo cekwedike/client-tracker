@@ -21,7 +21,7 @@ export function CCPlaybookPanel({ contacts }: { contacts: Contact[] }) {
   };
 
   return (
-    <Card className="border-emerald-500/20 bg-emerald-500/5">
+    <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">CC Playbook</CardTitle>
         <Button variant="ghost" size="sm" onClick={handleCopy} className="h-8 gap-1.5">
