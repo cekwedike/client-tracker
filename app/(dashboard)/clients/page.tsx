@@ -4,10 +4,7 @@ import { ClientsPageHeader } from "@/components/clients/clients-page-header";
 import { ClientsOfflineShell } from "@/components/clients/clients-offline-shell";
 import { ClientsWorkspace } from "@/components/clients/clients-workspace";
 import { QuickAddClientDialog } from "@/components/clients/quick-add-dialog";
-import { getCurrentUser } from "@/lib/actions/auth";
-import { getClients, getProfiles } from "@/lib/actions/clients";
-import { getMessageTemplates } from "@/lib/actions/templates";
-import { getTasks } from "@/lib/actions/tasks";
+import { safeGetClientsPageData } from "@/lib/actions/clients-page-data";
 import { Button } from "@/components/ui/button";
 
 interface PageProps {
@@ -21,17 +18,12 @@ interface PageProps {
 
 export default async function ClientsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const [clients, tasks, profiles, templates, user] = await Promise.all([
-    getClients({
+  const { clients, tasks, profiles, templates, userRole } =
+    await safeGetClientsPageData({
       search: params.search,
       billing_model: params.billing_model,
       status: params.status,
-    }),
-    getTasks(),
-    getProfiles(),
-    getMessageTemplates(),
-    getCurrentUser(),
-  ]);
+    });
 
   return (
     <>
@@ -51,9 +43,9 @@ export default async function ClientsPage({ searchParams }: PageProps) {
               clients={displayClients}
               initialClientId={params.client ?? null}
               tasks={tasks}
-              profiles={profiles ?? []}
+              profiles={profiles}
               templates={templates}
-              userRole={user?.role ?? "operator"}
+              userRole={userRole}
             />
           )}
         </ClientsOfflineShell>

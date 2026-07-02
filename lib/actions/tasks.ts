@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/actions/auth";
 import { logActivity } from "@/lib/actions/activity";
 import { canAssignTasks } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingSchemaError } from "@/lib/supabase/schema";
 import { taskSchema, type TaskFormValues } from "@/lib/validations/task";
 import type { Task } from "@/lib/types";
 
@@ -30,8 +31,30 @@ export async function getTasks(filters?: {
   if (filters?.client_id) query = query.eq("client_id", filters.client_id);
 
   const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data as Task[];
+  if (!error) return (data ?? []) as Task[];
+
+  if (isMissingSchemaError(error, "tasks", "clients", "profiles")) {
+    return [];
+  }
+
+  let fallbackQuery = supabase
+    .from("tasks")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (filters?.status) fallbackQuery = fallbackQuery.eq("status", filters.status);
+  if (filters?.assignee_id) fallbackQuery = fallbackQuery.eq("assignee_id", filters.assignee_id);
+  if (filters?.client_id) fallbackQuery = fallbackQuery.eq("client_id", filters.client_id);
+
+  const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+  if (!fallbackError) return (fallbackData ?? []) as Task[];
+
+  if (isMissingSchemaError(fallbackError, "tasks")) {
+    return [];
+  }
+
+  console.error("[getTasks]", fallbackError.message);
+  return [];
 }
 
 export async function getMyTasks(userId: string) {

@@ -12,7 +12,7 @@ import {
   type QuickAddClientValues,
 } from "@/lib/validations/client";
 import { validateClientFormData } from "@/lib/validations/client-save";
-import type { ClientDashboardSummary, ClientWithRelations } from "@/lib/types";
+import type { ClientDashboardSummary, ClientWithRelations, Profile } from "@/lib/types";
 
 /** Lighter fetch for dashboard — omits heavy text fields */
 export async function getClientsForDashboard() {
@@ -54,23 +54,25 @@ export async function getClientOptions() {
   return data as Pick<ClientWithRelations, "id" | "company_name">[];
 }
 
-export async function getClients(filters?: {
-  search?: string;
-  billing_model?: string;
-  status?: string;
-}) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("clients")
-    .select(
-      `
-      *,
-      contacts(*),
-      business_hours(*),
-      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
-    `,
-    )
-    .order("company_name");
+const CLIENTS_WITH_RELATIONS_SELECT = `
+  *,
+  contacts(*),
+  business_hours(*),
+  primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
+`;
+
+const CLIENTS_BASE_SELECT = `
+  *,
+  contacts(*),
+  business_hours(*)
+`;
+
+async function buildClientsQuery(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  select: string,
+  filters?: { search?: string; billing_model?: string; status?: string },
+) {
+  let query = supabase.from("clients").select(select).order("company_name");
 
   if (filters?.billing_model) {
     query = query.eq("billing_model", filters.billing_model);
@@ -80,16 +82,17 @@ export async function getClients(filters?: {
   }
   if (filters?.search?.trim()) {
     const term = filters.search.trim().replace(/[%_,]/g, "");
-    const { data: contactMatches } = await supabase
+    const { data: contactMatches, error: contactError } = await supabase
       .from("contacts")
       .select("client_id")
       .or(
         `name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%,cc_alias.ilike.%${term}%`,
       );
 
-    const contactClientIds = [
-      ...new Set(contactMatches?.map((c) => c.client_id) ?? []),
-    ];
+    const contactClientIds =
+      contactError && isMissingSchemaError(contactError, "contacts")
+        ? []
+        : [...new Set(contactMatches?.map((c) => c.client_id) ?? [])];
 
     const clientFields = `company_name.ilike.%${term}%,primary_contact_name.ilike.%${term}%,city.ilike.%${term}%`;
     if (contactClientIds.length > 0) {
@@ -99,9 +102,42 @@ export async function getClients(filters?: {
     }
   }
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data as ClientWithRelations[];
+  return query;
+}
+
+export async function getClients(filters?: {
+  search?: string;
+  billing_model?: string;
+  status?: string;
+}) {
+  const supabase = await createClient();
+
+  const { data, error } = await buildClientsQuery(
+    supabase,
+    CLIENTS_WITH_RELATIONS_SELECT,
+    filters,
+  );
+  if (!error) return (data ?? []) as unknown as ClientWithRelations[];
+
+  if (isMissingSchemaError(error, "clients", "contacts", "business_hours", "profiles")) {
+    return [];
+  }
+
+  // Join hint or embed can fail when schema cache is stale — retry without owner embed.
+  const { data: fallbackData, error: fallbackError } = await buildClientsQuery(
+    supabase,
+    CLIENTS_BASE_SELECT,
+    filters,
+  );
+
+  if (!fallbackError) return (fallbackData ?? []) as unknown as ClientWithRelations[];
+
+  if (isMissingSchemaError(fallbackError, "clients", "contacts", "business_hours")) {
+    return [];
+  }
+
+  console.error("[getClients]", fallbackError.message);
+  return [];
 }
 
 export async function getClient(id: string) {
@@ -369,7 +405,7 @@ export async function getProfiles() {
     .select("id, email, full_name, avatar_url, role, created_at, updated_at, is_active")
     .order("full_name");
 
-  if (!error) return data;
+  if (!error) return (data ?? []) as Profile[];
 
   if (isMissingSchemaError(error, "is_active")) {
     const { data: fallbackData, error: fallbackError } = await supabase
@@ -377,10 +413,12 @@ export async function getProfiles() {
       .select("id, email, full_name, avatar_url, role, created_at, updated_at")
       .order("full_name");
 
-    if (!fallbackError) return fallbackData;
+    if (!fallbackError) return (fallbackData ?? []) as Profile[];
     if (isMissingSchemaError(fallbackError, "profiles")) return [];
   }
 
   if (isMissingSchemaError(error, "profiles")) return [];
-  throw new Error(error.message);
+
+  console.error("[getProfiles]", error.message);
+  return [];
 }
