@@ -28,6 +28,45 @@ export function formatLocalDateTime(timezone: string): string {
   return getLocalTime(timezone).toFormat("EEE, MMM d · h:mm a");
 }
 
+export function getTimezoneAbbreviation(timezone: string): string {
+  const map: Record<string, string> = {
+    "America/New_York": "EST",
+    "America/Chicago": "CST",
+    "America/Denver": "MST",
+    "America/Los_Angeles": "PST",
+    "America/Phoenix": "MST",
+    "Europe/London": "GMT",
+    "Asia/Dubai": "GST",
+    "Asia/Singapore": "SGT",
+  };
+  return map[timezone] ?? DateTime.now().setZone(timezone).offsetNameShort ?? timezone;
+}
+
+export function getTimezoneRegion(timezone: string): string {
+  const map: Record<string, string> = {
+    "America/New_York": "Eastern US",
+    "America/Chicago": "Central US",
+    "America/Denver": "Mountain US",
+    "America/Los_Angeles": "Pacific US",
+    "America/Phoenix": "Arizona",
+    "Europe/London": "United Kingdom",
+    "Asia/Dubai": "UAE",
+    "Asia/Singapore": "Singapore",
+  };
+  return map[timezone] ?? timezone.split("/").pop()?.replace(/_/g, " ") ?? timezone;
+}
+
+export function formatClientLocation(
+  city?: string | null,
+  stateRegion?: string | null,
+  timezone?: string,
+): string {
+  const parts = [city, stateRegion].filter(Boolean);
+  if (parts.length > 0) return parts.join(", ");
+  if (timezone) return getTimezoneRegion(timezone);
+  return "—";
+}
+
 export function getContactWindowStatus(
   timezone: string,
   businessHours: BusinessHour[],

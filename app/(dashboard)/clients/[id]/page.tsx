@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DEAL_TYPES, TIMEZONE_OPTIONS } from "@/lib/types";
 import { ExternalLink, Pencil } from "lucide-react";
-import { formatLocalDateTime } from "@/lib/timezone";
+import { formatLocalDateTime, formatClientLocation } from "@/lib/timezone";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,7 +35,16 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <PageHeader title={client.company_name}>
+      <PageHeader
+        title={client.company_name}
+        description={[
+          client.primary_contact_name,
+          client.industry,
+          formatClientLocation(client.city, client.state_region, client.timezone),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
         <Link href={`/clients/${id}/edit`}>
           <Button variant="outline" className="gap-2">
             <Pencil className="h-4 w-4" />
@@ -79,9 +88,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Location: </span>
-                  {[client.city, client.state_region, client.country]
-                    .filter(Boolean)
-                    .join(", ") || "—"}
+                  {formatClientLocation(client.city, client.state_region, client.timezone)}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Industry: </span>

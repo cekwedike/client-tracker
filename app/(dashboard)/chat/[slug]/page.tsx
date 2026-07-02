@@ -27,7 +27,7 @@ export default async function ChatChannelPage({ params }: PageProps) {
     <>
       <PageHeader
         title="Chat"
-        description="Internal team communication — keep Smartlead for client email"
+        description="Internal team communication — separate from client email inboxes"
       />
       <div className="grid gap-6 lg:grid-cols-4">
         <div className="rounded-lg border p-3 lg:col-span-1">

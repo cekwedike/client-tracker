@@ -5,6 +5,7 @@
  *   1. Run supabase/migrations/001_initial_schema.sql in your Supabase SQL editor
  *   2. Copy .env.example to .env.local and fill in credentials
  *   3. pnpm seed
+ *   4. pnpm seed -- --refresh   (update existing rows from spreadsheet)
  */
 
 import { config } from "dotenv";
@@ -262,18 +263,46 @@ const DEFAULT_HOURS = Array.from({ length: 7 }, (_, day) => ({
 
 async function seed() {
   const supabase = createAdminClient();
+  const refresh = process.argv.includes("--refresh");
 
   const { data: existing } = await supabase
     .from("clients")
-    .select("company_name");
+    .select("id, company_name");
 
-  const existingNames = new Set(existing?.map((c) => c.company_name) ?? []);
+  const existingByName = new Map(
+    existing?.map((c) => [c.company_name, c.id]) ?? [],
+  );
 
   let inserted = 0;
+  let updated = 0;
   let skipped = 0;
 
   for (const seedClient of SPREADSHEET_CLIENTS) {
-    if (existingNames.has(seedClient.company_name)) {
+    const existingId = existingByName.get(seedClient.company_name);
+
+    if (existingId && refresh) {
+      const { contacts, ...clientData } = seedClient;
+      const { error } = await supabase
+        .from("clients")
+        .update({ ...clientData, status: "active", country: "US" })
+        .eq("id", existingId);
+
+      if (error) {
+        console.error(`✗ Failed to update ${seedClient.company_name}:`, error.message);
+        continue;
+      }
+
+      await supabase.from("contacts").delete().eq("client_id", existingId);
+      await supabase.from("contacts").insert(
+        contacts.map((c) => ({ ...c, client_id: existingId })),
+      );
+
+      console.log(`↻ Updated ${seedClient.company_name}`);
+      updated++;
+      continue;
+    }
+
+    if (existingId) {
       console.log(`⏭  Skipping ${seedClient.company_name} (already exists)`);
       skipped++;
       continue;
@@ -313,7 +342,7 @@ async function seed() {
     inserted++;
   }
 
-  console.log(`\nDone: ${inserted} inserted, ${skipped} skipped`);
+  console.log(`\nDone: ${inserted} inserted, ${updated} updated, ${skipped} skipped`);
 }
 
 seed().catch((err) => {

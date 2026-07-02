@@ -9,7 +9,7 @@ export default async function NewClientPage() {
     <>
       <PageHeader
         title="Add Client"
-        description="Full client profile with contacts, timezone, and Smartlead references"
+        description="Full client profile with contacts, timezone, and inbox references"
       />
       <ClientForm profiles={profiles} />
     </>

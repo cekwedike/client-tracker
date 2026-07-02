@@ -22,7 +22,8 @@
     "db:reset": "supabase db reset",
     "db:migrate": "supabase db reset",
     "db:push": "supabase db push",
-    "db:setup": "node scripts/write-local-env.mjs"
+    "db:setup": "node scripts/write-local-env.mjs",
+    "favicons": "node scripts/generate-favicons.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -56,6 +57,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "sharp": "^0.34.5",
     "supabase": "^2.109.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",

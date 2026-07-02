@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/sidebar";
+import { ClientStats } from "@/components/clients/client-stats";
 import { ClientsTable } from "@/components/clients/clients-table";
 import { ClientFilters } from "@/components/clients/client-filters";
 import { QuickAddClientDialog } from "@/components/clients/quick-add-dialog";
@@ -27,13 +28,15 @@ export default async function ClientsPage({ searchParams }: PageProps) {
     <>
       <PageHeader
         title="Clients"
-        description={`${clients.length} client${clients.length !== 1 ? "s" : ""} · Smartlead ops reference`}
+        description="Client operations hub — inbox timing, contacts, and deal types at a glance"
       >
         <Link href="/clients/new">
           <Button variant="outline">Full Form</Button>
         </Link>
         <QuickAddClientDialog />
       </PageHeader>
+
+      <ClientStats clients={clients} />
 
       <Suspense fallback={<div className="text-sm text-muted-foreground">Loading filters...</div>}>
         <ClientFilters />
