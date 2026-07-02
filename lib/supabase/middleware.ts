@@ -70,7 +70,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+  if (
+    user &&
+    (pathname === "/" ||
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/signup"))
+  ) {
     const dbReady = await checkDatabaseReadyInMiddleware(
       url,
       key,

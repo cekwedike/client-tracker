@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DEAL_TYPES, TIMEZONE_OPTIONS } from "@/lib/types";
-import { ExternalLink, Pencil } from "lucide-react";
+import { ExternalLink, Mail, Pencil, Phone, User } from "lucide-react";
 import { formatLocalDateTime, formatClientLocation } from "@/lib/timezone";
 
 interface PageProps {
@@ -32,6 +32,14 @@ export default async function ClientDetailPage({ params }: PageProps) {
     TIMEZONE_OPTIONS.find((t) => t.value === client.timezone)?.label ??
     client.timezone;
   const dealInfo = DEAL_TYPES.find((b) => b.value === client.billing_model);
+  const ccContact =
+    client.contacts.find((c) => c.is_default_cc) ??
+    client.contacts.find((c) => c.role === "cc_manager");
+  const primaryContact = client.contacts.find((c) => c.role === "primary");
+  const displayPhone =
+    ccContact?.phone ?? primaryContact?.phone ?? client.contacts.find((c) => c.phone)?.phone;
+  const displayEmail =
+    ccContact?.email ?? primaryContact?.email ?? client.contacts.find((c) => c.email)?.email;
 
   return (
     <>
@@ -82,10 +90,43 @@ export default async function ClientDetailPage({ params }: PageProps) {
               <Separator />
 
               <div className="space-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Primary Contact: </span>
-                  {client.primary_contact_name ?? "—"}
+                <div className="flex items-start gap-2">
+                  <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Primary Contact</p>
+                    <p className="font-medium">{client.primary_contact_name ?? "—"}</p>
+                  </div>
                 </div>
+                {ccContact && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">CC in responses</p>
+                    <p className="font-medium text-primary">
+                      {ccContact.cc_alias ?? ccContact.name}
+                    </p>
+                  </div>
+                )}
+                {displayEmail && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <a
+                      href={`mailto:${displayEmail}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {displayEmail}
+                    </a>
+                  </div>
+                )}
+                {displayPhone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <a
+                      href={`tel:${displayPhone.replace(/[^\d+]/g, "")}`}
+                      className="font-medium hover:text-primary"
+                    >
+                      {displayPhone}
+                    </a>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted-foreground">Location: </span>
                   {formatClientLocation(client.city, client.state_region, client.timezone)}
@@ -140,9 +181,21 @@ export default async function ClientDetailPage({ params }: PageProps) {
                     <p className="text-xs capitalize text-muted-foreground">
                       {contact.role.replace("_", " ")}
                     </p>
-                    {contact.email && <p className="mt-1">{contact.email}</p>}
+                    {contact.email && (
+                      <a
+                        href={`mailto:${contact.email}`}
+                        className="mt-1 block text-primary hover:underline"
+                      >
+                        {contact.email}
+                      </a>
+                    )}
                     {contact.phone && (
-                      <p className="text-muted-foreground">{contact.phone}</p>
+                      <a
+                        href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
+                        className="block text-muted-foreground hover:text-foreground"
+                      >
+                        {contact.phone}
+                      </a>
                     )}
                     {contact.cc_alias && (
                       <p className="mt-1 text-primary">

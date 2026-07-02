@@ -85,6 +85,7 @@ export async function createClientRecord(values: ClientFormValues) {
         ...c,
         client_id: client.id,
         email: c.email || null,
+        is_default_cc: c.is_default_cc ?? false,
       })),
     );
     if (contactError) throw new Error(contactError.message);
@@ -160,6 +161,7 @@ export async function updateClient(id: string, values: ClientFormValues) {
         ...c,
         client_id: id,
         email: c.email || null,
+        is_default_cc: c.is_default_cc ?? false,
       })),
     );
     if (contactError) throw new Error(contactError.message);

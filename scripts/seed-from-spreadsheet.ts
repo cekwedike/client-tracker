@@ -34,22 +34,22 @@ interface SeedClient {
 const SPREADSHEET_CLIENTS: SeedClient[] = [
   {
     company_name: "Service Master Clean",
-    primary_contact_name: "Amer Sharma",
+    primary_contact_name: "Arnav Sharma",
     billing_model: "ppl",
     timezone: mapAbbreviationToTimezone("BST"),
     industry: "Commercial Cleaning",
     contacts: [
       {
         role: "primary",
-        name: "Amer Sharma",
-        email: "amer@property-one.net",
-        phone: "44 7305 821345",
+        name: "Arnav Sharma",
+        email: "arnav@property-one.net",
+        phone: "44 7305 921345",
       },
       {
         role: "cc_manager",
-        name: "Amer Sharma",
-        email: "amer@property-one.net",
-        phone: "44 7305 821345",
+        name: "Arnav Sharma",
+        email: "arnav@property-one.net",
+        phone: "44 7305 921345",
         cc_alias: "Arnav",
         is_default_cc: true,
       },
@@ -66,20 +66,22 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
         role: "primary",
         name: "Taylor Juchs",
         email: "info@impeccablycleanllc.com",
-        phone: "443-324-6164",
+        phone: "443-324-6154",
       },
       {
         role: "cc_manager",
         name: "Taylor Juchs",
         email: "info@impeccablycleanllc.com",
-        phone: "443-324-6164",
+        phone: "443-324-6154",
         cc_alias: "Taylor",
+        special_instructions:
+          "Say \"I'll give you a call from {Number}\" instead of CC name",
         is_default_cc: true,
       },
     ],
   },
   {
-    company_name: "Cleaning Group Inc.",
+    company_name: "Cleaning Group Inc",
     primary_contact_name: "Glenn Greeley",
     billing_model: "ppl",
     timezone: mapAbbreviationToTimezone("EST"),
@@ -89,16 +91,14 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
         role: "primary",
         name: "Glenn Greeley",
         email: "glenn@cleaninggroupinc.com",
-        phone: "(484) 426-7366",
+        phone: "631-669-6033",
       },
       {
         role: "cc_manager",
         name: "Glenn Greeley",
         email: "glenn@cleaninggroupinc.com",
-        phone: "(484) 426-7366",
+        phone: "631-669-6033",
         cc_alias: "Glenn",
-        special_instructions:
-          "Email accounts already named after, so just say I'll give you a call from (number)",
         is_default_cc: true,
       },
     ],
@@ -113,12 +113,14 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
       {
         role: "primary",
         name: "Patrick Wright",
-        email: "patrick@cleanpristine.com",
+        email: "patrikklw@gmail.com",
+        phone: "013-359-1051",
       },
       {
         role: "cc_manager",
         name: "Patrick Wright",
-        email: "patrick@cleanpristine.com",
+        email: "patrikklw@gmail.com",
+        phone: "013-359-1051",
         cc_alias: "Patrick",
         is_default_cc: true,
       },
@@ -126,15 +128,22 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
   },
   {
     company_name: "Lehigh Valley Cleaning Services",
-    primary_contact_name: "Ali Ayalla",
+    primary_contact_name: "Ali Ayala",
     billing_model: "ppl",
     timezone: mapAbbreviationToTimezone("EST"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Ali Ayalla" },
+      {
+        role: "primary",
+        name: "Ali Ayala",
+        email: "lehighvalleycleaningservices@gmail.com",
+        phone: "(484) 426-7366",
+      },
       {
         role: "cc_manager",
-        name: "Ali Ayalla",
+        name: "Ali Ayala",
+        email: "lehighvalleycleaningservices@gmail.com",
+        phone: "(484) 426-7366",
         cc_alias: "Ali",
         is_default_cc: true,
       },
@@ -147,10 +156,17 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     timezone: mapAbbreviationToTimezone("CST"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Yamileth Ospina" },
+      {
+        role: "primary",
+        name: "Yamileth Ospina",
+        email: "john@myjanitorialservices.us",
+        phone: "(832) 978 7420",
+      },
       {
         role: "cc_manager",
         name: "John",
+        email: "john@myjanitorialservices.us",
+        phone: "(832) 978 7420",
         cc_alias: "John",
         is_default_cc: true,
       },
@@ -160,13 +176,20 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     company_name: "Partner Facility Solutions",
     primary_contact_name: "Mauricio Fonseca",
     billing_model: "ppm",
-    timezone: mapAbbreviationToTimezone("CST"),
+    timezone: mapAbbreviationToTimezone("EST"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Mauricio Fonseca" },
+      {
+        role: "primary",
+        name: "Mauricio Fonseca",
+        email: "mfonseca@partnerfacility.com",
+        phone: "617 553-4862",
+      },
       {
         role: "cc_manager",
         name: "Mauricio Fonseca",
+        email: "mfonseca@partnerfacility.com",
+        phone: "617 553-4862",
         cc_alias: "Mauricio",
         is_default_cc: true,
       },
@@ -179,10 +202,17 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     timezone: mapAbbreviationToTimezone("MT"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Danny" },
+      {
+        role: "primary",
+        name: "Danny",
+        email: "danny@goaaacontrol.com",
+        phone: "(512) 230-8168",
+      },
       {
         role: "cc_manager",
         name: "Danny",
+        email: "danny@goaaacontrol.com",
+        phone: "(512) 230-8168",
         cc_alias: "Danny",
         is_default_cc: true,
       },
@@ -195,10 +225,17 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     timezone: mapAbbreviationToTimezone("MT"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Mark" },
+      {
+        role: "primary",
+        name: "Mark",
+        email: "mark@aspenmaintenance.com",
+        phone: "(720) 341-9041",
+      },
       {
         role: "cc_manager",
         name: "Mark",
+        email: "mark@aspenmaintenance.com",
+        phone: "(720) 341-9041",
         cc_alias: "Mark",
         is_default_cc: true,
       },
@@ -211,26 +248,40 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     timezone: mapAbbreviationToTimezone("PST"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Brett Lee" },
+      {
+        role: "primary",
+        name: "Brett Lee",
+        email: "tiara@citicleanservices.com",
+        phone: "4359226677",
+      },
       {
         role: "cc_manager",
-        name: "Tara",
+        name: "Tiara",
+        email: "tiara@citicleanservices.com",
+        phone: "4359226677",
         cc_alias: "Tiara",
         is_default_cc: true,
       },
     ],
   },
   {
-    company_name: "Status Clean",
+    company_name: "Stratus Clean",
     primary_contact_name: "Shaun Butterworth",
     billing_model: "ppl",
-    timezone: mapAbbreviationToTimezone("PST"),
+    timezone: mapAbbreviationToTimezone("CST"),
     industry: "Commercial Cleaning",
     contacts: [
-      { role: "primary", name: "Shaun Butterworth" },
+      {
+        role: "primary",
+        name: "Shaun Butterworth",
+        email: "sbutterworth@stratusclean.com",
+        phone: "972-391-7011",
+      },
       {
         role: "cc_manager",
         name: "Shaun Butterworth",
+        email: "sbutterworth@stratusclean.com",
+        phone: "972-391-7011",
         cc_alias: "Shaun",
         is_default_cc: true,
       },
@@ -243,10 +294,17 @@ const SPREADSHEET_CLIENTS: SeedClient[] = [
     timezone: mapAbbreviationToTimezone("PST"),
     industry: "Landscaping",
     contacts: [
-      { role: "primary", name: "Matt Hartman" },
+      {
+        role: "primary",
+        name: "Matt Hartman",
+        email: "Matt@greentipsla.com",
+        phone: "650-307-5288",
+      },
       {
         role: "cc_manager",
         name: "Matt Hartman",
+        email: "Matt@greentipsla.com",
+        phone: "650-307-5288",
         cc_alias: "Matt",
         is_default_cc: true,
       },
@@ -261,6 +319,17 @@ const DEFAULT_HOURS = Array.from({ length: 7 }, (_, day) => ({
   is_closed: day === 0 || day === 6,
 }));
 
+function mapContactsForInsert(
+  contacts: SeedClient["contacts"],
+  clientId: string,
+) {
+  return contacts.map((c) => ({
+    ...c,
+    client_id: clientId,
+    is_default_cc: c.is_default_cc ?? false,
+  }));
+}
+
 async function seed() {
   const supabase = createAdminClient();
   const refresh = process.argv.includes("--refresh");
@@ -273,12 +342,29 @@ async function seed() {
     existing?.map((c) => [c.company_name, c.id]) ?? [],
   );
 
+  const LEGACY_NAME_ALIASES: Record<string, string> = {
+    "Cleaning Group Inc.": "Cleaning Group Inc",
+    "Status Clean": "Stratus Clean",
+  };
+
+  function resolveExistingId(companyName: string): string | undefined {
+    const direct = existingByName.get(companyName);
+    if (direct) return direct;
+    for (const [legacy, canonical] of Object.entries(LEGACY_NAME_ALIASES)) {
+      if (canonical === companyName) {
+        const legacyId = existingByName.get(legacy);
+        if (legacyId) return legacyId;
+      }
+    }
+    return undefined;
+  }
+
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
 
   for (const seedClient of SPREADSHEET_CLIENTS) {
-    const existingId = existingByName.get(seedClient.company_name);
+    const existingId = resolveExistingId(seedClient.company_name);
 
     if (existingId && refresh) {
       const { contacts, ...clientData } = seedClient;
@@ -293,9 +379,16 @@ async function seed() {
       }
 
       await supabase.from("contacts").delete().eq("client_id", existingId);
-      await supabase.from("contacts").insert(
-        contacts.map((c) => ({ ...c, client_id: existingId })),
-      );
+      const { error: contactError } = await supabase
+        .from("contacts")
+        .insert(mapContactsForInsert(contacts, existingId));
+      if (contactError) {
+        console.error(
+          `✗ Failed to update contacts for ${seedClient.company_name}:`,
+          contactError.message,
+        );
+        continue;
+      }
 
       console.log(`↻ Updated ${seedClient.company_name}`);
       updated++;
@@ -321,9 +414,16 @@ async function seed() {
       continue;
     }
 
-    await supabase.from("contacts").insert(
-      contacts.map((c) => ({ ...c, client_id: client.id })),
-    );
+    const { error: contactError } = await supabase
+      .from("contacts")
+      .insert(mapContactsForInsert(contacts, client.id));
+    if (contactError) {
+      console.error(
+        `✗ Failed to insert contacts for ${seedClient.company_name}:`,
+        contactError.message,
+      );
+      continue;
+    }
 
     await supabase.from("business_hours").insert(
       DEFAULT_HOURS.map((h) => ({ ...h, client_id: client.id })),

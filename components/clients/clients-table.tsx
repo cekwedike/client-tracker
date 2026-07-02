@@ -139,17 +139,25 @@ export function ClientsTable({ clients }: { clients: ClientWithRelations[] }) {
                           {ccName ?? "—"}
                         </p>
                         <div className="mt-2 space-y-1.5">
-                          {ccEmail && (
-                            <p className="flex items-center gap-2 text-sm text-foreground/90">
-                              <Mail className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                              <span className="truncate">{ccEmail}</span>
-                            </p>
-                          )}
+                          <p className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                            {ccEmail ? (
+                              <a
+                                href={`mailto:${ccEmail}`}
+                                className="truncate font-medium text-foreground hover:text-primary"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {ccEmail}
+                              </a>
+                            ) : (
+                              <span className="italic text-subtle">No email on file</span>
+                            )}
+                          </p>
                           <p className="flex items-center gap-2 text-sm">
                             <Phone className="h-3.5 w-3.5 shrink-0 text-primary/70" />
                             {phone ? (
                               <a
-                                href={`tel:${phone.replace(/\s/g, "")}`}
+                                href={`tel:${phone.replace(/[^\d+]/g, "")}`}
                                 className="font-medium text-foreground hover:text-primary"
                                 onClick={(e) => e.stopPropagation()}
                               >
