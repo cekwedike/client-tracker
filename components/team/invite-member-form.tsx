@@ -45,18 +45,20 @@ export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      try {
-        await inviteTeamMember(email.trim(), fullName.trim() || undefined, role);
-        toast.success(`Invite sent to ${email} as ${ROLE_LABELS[role]}`);
-        setEmail("");
-        setFullName("");
-        setRole(defaultRole);
-        router.refresh();
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Could not send invite. Try again.",
-        );
+      const result = await inviteTeamMember(
+        email.trim(),
+        fullName.trim() || undefined,
+        role,
+      );
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
+      toast.success(`Invite sent to ${email} as ${ROLE_LABELS[role]}`);
+      setEmail("");
+      setFullName("");
+      setRole(defaultRole);
+      router.refresh();
     });
   };
 

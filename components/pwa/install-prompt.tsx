@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -11,22 +11,79 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISS_KEY = "meridian-pwa-install-dismissed";
 
+/** Survives React Strict Mode remounts — beforeinstallprompt only fires once per load. */
+let capturedPrompt: BeforeInstallPromptEvent | null = null;
+
+function isDismissed(): boolean {
+  try {
+    return localStorage.getItem(DISMISS_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+function revealPrompt(
+  event: BeforeInstallPromptEvent,
+  setDeferred: (event: BeforeInstallPromptEvent) => void,
+  setVisible: (visible: boolean) => void,
+) {
+  if (isDismissed() || isStandalone()) return;
+  capturedPrompt = event;
+  setDeferred(event);
+  setVisible(true);
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
+  const dismiss = useCallback((persist = true) => {
+    if (persist) {
+      try {
+        localStorage.setItem(DISMISS_KEY, "true");
+      } catch {
+        // ignore storage errors
+      }
+    }
+    capturedPrompt = null;
+    setDeferred(null);
+    setVisible(false);
+  }, []);
+
   useEffect(() => {
-    if (localStorage.getItem(DISMISS_KEY) === "true") return;
+    if (isStandalone() || isDismissed()) return;
+
+    if (capturedPrompt) {
+      queueMicrotask(() => revealPrompt(capturedPrompt!, setDeferred, setVisible));
+    }
 
     const handler = (event: Event) => {
       event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
-      setVisible(true);
+      revealPrompt(event as BeforeInstallPromptEvent, setDeferred, setVisible);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  const handleInstall = useCallback(async () => {
+    if (!deferred) return;
+    try {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      dismiss(outcome === "accepted");
+    } catch {
+      dismiss(false);
+    }
+  }, [deferred, dismiss]);
 
   if (!visible || !deferred) return null;
 
@@ -42,27 +99,11 @@ export function InstallPrompt() {
             Add to your home screen for faster access and offline client cache.
           </p>
           <div className="mt-3 flex gap-2">
-            <Button
-              size="sm"
-              className="gap-1.5"
-              onClick={async () => {
-                await deferred.prompt();
-                setVisible(false);
-                setDeferred(null);
-              }}
-            >
+            <Button size="sm" className="gap-1.5" onClick={() => void handleInstall()}>
               <Download className="h-3.5 w-3.5" />
               Install
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                localStorage.setItem(DISMISS_KEY, "true");
-                setVisible(false);
-                setDeferred(null);
-              }}
-            >
+            <Button size="sm" variant="ghost" onClick={() => dismiss()}>
               Not now
             </Button>
           </div>
@@ -70,10 +111,7 @@ export function InstallPrompt() {
         <button
           type="button"
           className="text-muted-foreground hover:text-foreground"
-          onClick={() => {
-            localStorage.setItem(DISMISS_KEY, "true");
-            setVisible(false);
-          }}
+          onClick={() => dismiss()}
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

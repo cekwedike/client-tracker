@@ -174,40 +174,88 @@ export async function reactivateTeamMember(userId: string) {
   return { success: true };
 }
 
+export type InviteTeamMemberResult =
+  | { ok: true; userId?: string }
+  | { ok: false; error: string };
+
+function mapInviteError(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes("already been registered") ||
+    lower.includes("already exists") ||
+    lower.includes("user already registered") ||
+    lower.includes("email address has already")
+  ) {
+    return "That email already has an account. They can sign in, or you can remove and re-invite them.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "Too many invites sent. Wait a few minutes and try again.";
+  }
+  if (lower.includes("redirect") && lower.includes("invalid")) {
+    return "Invite link is misconfigured. Set NEXT_PUBLIC_SITE_URL on Vercel and add the callback URL in Supabase Auth settings.";
+  }
+  if (lower.includes("invalid email") || lower.includes("unable to validate email")) {
+    return "Please enter a valid email address.";
+  }
+  if (lower.includes("smtp") || lower.includes("email provider")) {
+    return "Could not send the invite email. Check Supabase Auth email settings.";
+  }
+
+  return message || "Could not send invite. Try again.";
+}
+
 /** Invite by email via admin client (service role, server-only). */
 export async function inviteTeamMember(
   email: string,
   fullName?: string,
   role: UserRole = "operator",
-) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser || !canInviteMembers(currentUser.role)) {
-    throw new Error("Only admins can invite team members");
-  }
-
-  if (!canAssignRoleOnInvite(currentUser.role, role)) {
-    throw new Error("You cannot assign that role");
-  }
-
-  const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
-    "@/lib/supabase/admin"
-  );
-  const { getSiteUrl } = await import("@/lib/site-url");
-
-  let admin;
+): Promise<InviteTeamMemberResult> {
   try {
-    admin = createAdminClient();
-  } catch {
-    throw new Error(ADMIN_CLIENT_UNAVAILABLE_MESSAGE);
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      return { ok: false, error: "Please enter a valid email address." };
+    }
+
+    const currentUser = await getCurrentUser();
+    if (!currentUser || !canInviteMembers(currentUser.role)) {
+      return { ok: false, error: "Only admins can invite team members." };
+    }
+
+    if (!canAssignRoleOnInvite(currentUser.role, role)) {
+      return { ok: false, error: "You cannot assign that role." };
+    }
+
+    const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
+      "@/lib/supabase/admin"
+    );
+    const { getSiteUrl } = await import("@/lib/site-url");
+
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch {
+      return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
+    }
+
+    const redirectTo = `${getSiteUrl()}/auth/callback`;
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(trimmedEmail, {
+      data: {
+        full_name: fullName?.trim() || trimmedEmail.split("@")[0],
+        role,
+        invited: true,
+      },
+      redirectTo,
+    });
+
+    if (error) {
+      return { ok: false, error: mapInviteError(error.message) };
+    }
+
+    revalidatePath("/team");
+    return { ok: true, userId: data.user?.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not send invite. Try again.";
+    return { ok: false, error: mapInviteError(message) };
   }
-
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName ?? email.split("@")[0], role, invited: true },
-    redirectTo: `${getSiteUrl()}/auth/callback`,
-  });
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/team");
-  return { success: true, userId: data.user?.id };
 }
