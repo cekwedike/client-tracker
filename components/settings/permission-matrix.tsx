@@ -20,15 +20,15 @@ const ACTIONS: {
   label: string;
   check: (role: UserRole) => boolean;
 }[] = [
-  { label: "View clients, tasks & team", check: () => true },
-  { label: "Edit clients", check: (r) => canEditClient(r, true) },
-  { label: "Manage templates", check: (r) => canManageTemplates(r) },
-  { label: "Delete templates", check: (r) => canDeleteTemplate(r) },
-  { label: "Assign tasks", check: (r) => canAssignTasks(r) },
-  { label: "Invite team members", check: (r) => canInviteMembers(r) },
-  { label: "Remove team members", check: (r) => canRemoveMember(r) },
-  { label: "Change member roles", check: (r) => canChangeRole(r) },
-  { label: "Refresh spreadsheet", check: (r) => canRefreshSpreadsheet(r) },
+  { label: "View Clients, Tasks & Team", check: () => true },
+  { label: "Edit Clients", check: (r) => canEditClient(r, true) },
+  { label: "Manage Templates", check: (r) => canManageTemplates(r) },
+  { label: "Delete Templates", check: (r) => canDeleteTemplate(r) },
+  { label: "Assign Tasks", check: (r) => canAssignTasks(r) },
+  { label: "Invite Team Members", check: (r) => canInviteMembers(r) },
+  { label: "Remove Team Members", check: (r) => canRemoveMember(r) },
+  { label: "Change Member Roles", check: (r) => canChangeRole(r) },
+  { label: "Refresh Spreadsheet", check: (r) => canRefreshSpreadsheet(r) },
 ];
 
 interface PermissionMatrixProps {
@@ -52,11 +52,11 @@ export function PermissionMatrix({
     <div className={cn(!compact && "glass-panel gradient-border overflow-hidden p-6")}>
       {!compact && (
         <>
-          <h2 className="text-lg font-semibold text-foreground">Permission matrix</h2>
+          <h2 className="text-lg font-semibold text-foreground">Permission Matrix</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {selectedRole
-              ? `Capabilities for the ${selectedRole} role`
-              : "Role capabilities across Meridian — select a role above to focus"}
+              ? `Capabilities For The ${selectedRole} Role`
+              : "Role Capabilities Across Meridian — Select a Role Above to Focus"}
           </p>
         </>
       )}

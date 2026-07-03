@@ -6,6 +6,7 @@ import {
   canAssignRoleOnInvite,
   canChangeRole,
   canInviteMembers,
+  canPermanentlyDeleteMember,
   canRemoveMember,
   canRemoveMemberRole,
   isPlatformAdmin,
@@ -146,6 +147,69 @@ export async function removeTeamMember(userId: string) {
     }
     throw new Error(error.message);
   }
+  revalidatePath("/team");
+  return { success: true };
+}
+
+/**
+ * Permanent delete: removes the profile row and auth.users entry.
+ * Unlike removeTeamMember (soft deactivate), this cannot be undone.
+ * Only superadmins may delete; target must already be inactive.
+ */
+export async function deleteTeamMemberPermanently(userId: string) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || !canPermanentlyDeleteMember(currentUser.role)) {
+    throw new Error("Only superadmins can permanently delete members");
+  }
+
+  if (userId === currentUser.id) {
+    throw new Error("You cannot delete yourself");
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("role, is_active")
+    .eq("id", userId)
+    .single();
+
+  if (!target) throw new Error("Member not found");
+  if (target.is_active !== false) {
+    throw new Error("Remove the member first — permanent delete applies only to inactive members");
+  }
+
+  if (target.role === "superadmin") {
+    const { count, error: countError } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "superadmin");
+
+    if (countError) throw new Error(countError.message);
+    if ((count ?? 0) <= 1) {
+      throw new Error("Cannot delete the last superadmin");
+    }
+  }
+
+  const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
+    "@/lib/supabase/admin"
+  );
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    throw new Error(ADMIN_CLIENT_UNAVAILABLE_MESSAGE);
+  }
+
+  const { error: profileError } = await admin.from("profiles").delete().eq("id", userId);
+
+  if (profileError) throw new Error(profileError.message);
+
+  const { error: authError } = await admin.auth.admin.deleteUser(userId);
+  if (authError && authError.message !== "User not found") {
+    throw new Error(authError.message);
+  }
+
   revalidatePath("/team");
   return { success: true };
 }

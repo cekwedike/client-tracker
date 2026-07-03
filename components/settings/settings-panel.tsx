@@ -8,11 +8,7 @@ import { TimezoneSettings } from "@/components/settings/timezone-settings";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, LayoutGrid, RotateCcw } from "lucide-react";
-import { SpreadsheetRefreshPanel } from "@/components/settings/spreadsheet-refresh-panel";
 import { NotificationSettings } from "@/components/settings/notification-settings";
-import { PermissionMatrix } from "@/components/settings/permission-matrix";
-import { ExportClientsPanel } from "@/components/settings/export-clients-panel";
-import { canExportClients, canRefreshSpreadsheet } from "@/lib/permissions";
 import type { Profile } from "@/lib/types";
 
 function ToggleGroup<T extends string>({
@@ -144,18 +140,6 @@ export function SettingsPanel({ user }: { user: Profile }) {
       </MotionFadeUp>
 
       <MotionFadeUp delay={0.14}>
-        <PermissionMatrix />
-      </MotionFadeUp>
-
-      {canExportClients(user.role) && (
-        <MotionFadeUp delay={0.16}>
-          <ExportClientsPanel />
-        </MotionFadeUp>
-      )}
-
-      {canRefreshSpreadsheet(user.role) && <SpreadsheetRefreshPanel />}
-
-      <MotionFadeUp delay={0.18}>
         <div className="flex justify-end">
           <Button
             variant="outline"

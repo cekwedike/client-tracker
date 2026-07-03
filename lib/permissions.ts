@@ -11,10 +11,12 @@
  * | Invite team members       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
  * | Change member roles       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
  * | Remove team members       |     ✓      |   ✓*  |    ✗    |    ✗     |   ✗    |
+ * | Permanently delete members|     ✓†     |   ✗   |    ✗    |    ✗     |   ✗    |
  * | Refresh spreadsheet       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
  * | Delete clients            |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
  *
  * * Admins cannot remove other admins or superadmins; superadmin can remove admins.
+ * † Permanent delete (inactive members only) removes profile + auth account; Remove only deactivates.
  */
 import type { UserRole } from "@/lib/types";
 
@@ -69,6 +71,11 @@ export function canRemoveAdmin(actorRole: UserRole, targetRole: UserRole): boole
 export function canRemoveMemberRole(actorRole: UserRole, targetRole: UserRole): boolean {
   if (!canRemoveMember(actorRole)) return false;
   return canRemoveAdmin(actorRole, targetRole);
+}
+
+/** Hard-delete profile + auth user. Superadmin only; UI targets inactive members. */
+export function canPermanentlyDeleteMember(role: UserRole): boolean {
+  return isSuperadmin(role);
 }
 
 export function canExportClients(role: UserRole): boolean {
