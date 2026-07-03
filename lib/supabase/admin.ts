@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getSupabaseEnv } from "@/lib/supabase/config";
 
 export const ADMIN_CLIENT_UNAVAILABLE_MESSAGE =
-  "This action is temporarily unavailable. Please contact your administrator.";
+  "Invites are unavailable on the server. Ensure SUPABASE_SERVICE_ROLE_KEY is set in your deployment environment.";
 
 export function createAdminClient() {
   const env = getSupabaseEnv();

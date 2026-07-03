@@ -175,10 +175,55 @@ export async function reactivateTeamMember(userId: string) {
 }
 
 export type InviteTeamMemberResult =
-  | { ok: true; userId?: string }
+  | { ok: true; userId?: string; inviteLink?: string; emailNotSent?: boolean }
   | { ok: false; error: string };
 
-function mapInviteError(message: string): string {
+type InviteAuthError = {
+  message: string;
+  code?: string;
+  status?: number;
+};
+
+const DATABASE_USER_ERROR_HINT =
+  "Could not create the invited user — the database trigger that creates profiles failed. Run migrations 004–008 in the Supabase SQL editor, then retry.";
+
+function isUselessAuthMessage(message: string): boolean {
+  const trimmed = message.trim();
+  return (
+    !trimmed ||
+    trimmed === "{}" ||
+    trimmed === "[]" ||
+    trimmed === "[object Object]"
+  );
+}
+
+function mapInviteError({ message, code, status }: InviteAuthError): string {
+  if (isUselessAuthMessage(message)) {
+    if (status === 500 || code === "unexpected_failure") {
+      return DATABASE_USER_ERROR_HINT;
+    }
+    return "Could not send invite. Try again.";
+  }
+
+  switch (code) {
+    case "email_exists":
+    case "user_already_exists":
+      return "That email already has an account. They can sign in, or you can remove and re-invite them.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "Too many invites sent. Wait a few minutes and try again.";
+    case "email_address_invalid":
+    case "validation_failed":
+      return "Please enter a valid email address.";
+    case "signup_disabled":
+      return "Could not send invite. Contact support — this should not happen for admin invites.";
+    case "email_address_not_authorized":
+    case "email_provider_disabled":
+      return "Could not send the invite email. Configure custom SMTP in Supabase Auth settings.";
+    case "unexpected_failure":
+      return DATABASE_USER_ERROR_HINT;
+  }
+
   const lower = message.toLowerCase();
 
   if (
@@ -193,20 +238,220 @@ function mapInviteError(message: string): string {
     return "Too many invites sent. Wait a few minutes and try again.";
   }
   if (lower.includes("redirect") && lower.includes("invalid")) {
-    return "Invite link is misconfigured. Set NEXT_PUBLIC_SITE_URL on Vercel and add the callback URL in Supabase Auth settings.";
+    return "Invite link is misconfigured. Set NEXT_PUBLIC_SITE_URL on Vercel and add the callback URL in Supabase Auth → URL Configuration.";
   }
   if (lower.includes("invalid email") || lower.includes("unable to validate email")) {
     return "Please enter a valid email address.";
   }
   if (lower.includes("smtp") || lower.includes("email provider")) {
-    return "Could not send the invite email. Check Supabase Auth email settings.";
+    return "Could not send the invite email. Configure custom SMTP in Supabase Auth settings.";
+  }
+  if (
+    lower.includes("database error saving new user") ||
+    lower.includes("database error creating new user")
+  ) {
+    return DATABASE_USER_ERROR_HINT;
   }
 
   return message || "Could not send invite. Try again.";
 }
 
+async function resolveInviteAuthError(
+  adminUrl: string,
+  serviceKey: string,
+  email: string,
+  redirectTo: string,
+  metadata: { full_name: string; role: UserRole; invited: boolean },
+  error: InviteAuthError,
+): Promise<InviteAuthError> {
+  if (!isUselessAuthMessage(error.message)) {
+    return error;
+  }
+
+  try {
+    const response = await fetch(`${adminUrl}/auth/v1/invite`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        email,
+        data: metadata,
+        redirect_to: redirectTo,
+      }),
+    });
+    const body = (await response.json()) as {
+      msg?: string;
+      error_code?: string;
+      message?: string;
+    };
+    const resolvedMessage = body.msg ?? body.message ?? error.message;
+    return {
+      message: resolvedMessage,
+      code: body.error_code ?? error.code,
+      status: response.status,
+    };
+  } catch {
+    return error;
+  }
+}
+
+function logInviteError(
+  context: string,
+  email: string,
+  error: InviteAuthError,
+) {
+  console.error(`[inviteTeamMember] ${context}`, {
+    email,
+    code: error.code,
+    status: error.status,
+    message: error.message,
+  });
+}
+
+async function generateInviteLink(
+  admin: Awaited<ReturnType<typeof import("@/lib/supabase/admin").createAdminClient>>,
+  email: string,
+  redirectTo: string,
+  metadata: { full_name: string; role: UserRole; invited: boolean },
+): Promise<{ userId?: string; inviteLink?: string }> {
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { data: metadata, redirectTo },
+  });
+
+  if (error) {
+    logInviteError("generateLink failed", email, error);
+    return {};
+  }
+
+  return {
+    userId: data.user?.id,
+    inviteLink: data.properties?.action_link,
+  };
+}
+
+function isEmailDeliveryError(error: InviteAuthError): boolean {
+  const lower = error.message.toLowerCase();
+  if (
+    lower.includes("database error saving new user") ||
+    lower.includes("database error creating new user")
+  ) {
+    return false;
+  }
+
+  if (
+    error.code === "over_email_send_rate_limit" ||
+    error.code === "over_request_rate_limit" ||
+    error.code === "email_address_not_authorized" ||
+    error.code === "email_provider_disabled"
+  ) {
+    return true;
+  }
+
+  return (
+    lower.includes("rate limit") ||
+    lower.includes("smtp") ||
+    lower.includes("email provider") ||
+    lower.includes("email send")
+  );
+}
+
 /** Invite by email via admin client (service role, server-only). */
 export async function inviteTeamMember(
+  email: string,
+  fullName?: string,
+  role: UserRole = "operator",
+): Promise<InviteTeamMemberResult> {
+  try {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      return { ok: false, error: "Please enter a valid email address." };
+    }
+
+    const currentUser = await getCurrentUser();
+    if (!currentUser || !canInviteMembers(currentUser.role)) {
+      return { ok: false, error: "Only admins can invite team members." };
+    }
+
+    if (!canAssignRoleOnInvite(currentUser.role, role)) {
+      return { ok: false, error: "You cannot assign that role." };
+    }
+
+    const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
+      "@/lib/supabase/admin"
+    );
+    const { getSiteUrl } = await import("@/lib/site-url");
+    const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch {
+      return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
+    }
+
+    const redirectTo = `${getSiteUrl()}/auth/callback`;
+    const metadata = {
+      full_name: fullName?.trim() || trimmedEmail.split("@")[0],
+      role,
+      invited: true as const,
+    };
+
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(trimmedEmail, {
+      data: metadata,
+      redirectTo,
+    });
+
+    if (error) {
+      const resolvedError =
+        adminUrl && serviceKey
+          ? await resolveInviteAuthError(
+              adminUrl,
+              serviceKey,
+              trimmedEmail,
+              redirectTo,
+              metadata,
+              error,
+            )
+          : error;
+      logInviteError("inviteUserByEmail failed", trimmedEmail, resolvedError);
+
+      if (isEmailDeliveryError(resolvedError)) {
+        const fallback = await generateInviteLink(
+          admin,
+          trimmedEmail,
+          redirectTo,
+          metadata,
+        );
+        if (fallback.inviteLink) {
+          revalidatePath("/team");
+          return {
+            ok: true,
+            userId: fallback.userId,
+            inviteLink: fallback.inviteLink,
+            emailNotSent: true,
+          };
+        }
+      }
+
+      return { ok: false, error: mapInviteError(resolvedError) };
+    }
+
+    revalidatePath("/team");
+    return { ok: true, userId: data.user?.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not send invite. Try again.";
+    return { ok: false, error: mapInviteError({ message, status: 500 }) };
+  }
+}
+
+/** Generate a shareable invite link without sending email (invalidates any prior invite link). */
+export async function generateTeamMemberInviteLink(
   email: string,
   fullName?: string,
   role: UserRole = "operator",
@@ -239,23 +484,29 @@ export async function inviteTeamMember(
     }
 
     const redirectTo = `${getSiteUrl()}/auth/callback`;
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(trimmedEmail, {
-      data: {
-        full_name: fullName?.trim() || trimmedEmail.split("@")[0],
-        role,
-        invited: true,
-      },
-      redirectTo,
-    });
+    const metadata = {
+      full_name: fullName?.trim() || trimmedEmail.split("@")[0],
+      role,
+      invited: true as const,
+    };
 
-    if (error) {
-      return { ok: false, error: mapInviteError(error.message) };
+    const link = await generateInviteLink(admin, trimmedEmail, redirectTo, metadata);
+    if (!link.inviteLink) {
+      return {
+        ok: false,
+        error: mapInviteError({ message: "Could not generate invite link." }),
+      };
     }
 
     revalidatePath("/team");
-    return { ok: true, userId: data.user?.id };
+    return {
+      ok: true,
+      userId: link.userId,
+      inviteLink: link.inviteLink,
+      emailNotSent: true,
+    };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not send invite. Try again.";
-    return { ok: false, error: mapInviteError(message) };
+    const message = err instanceof Error ? err.message : "Could not generate invite link.";
+    return { ok: false, error: mapInviteError({ message }) };
   }
 }
