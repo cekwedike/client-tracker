@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/actions/auth";
 import {
+  canAssignRoleOnInvite,
   canChangeRole,
   canInviteMembers,
   canRemoveMember,
@@ -173,19 +174,35 @@ export async function reactivateTeamMember(userId: string) {
   return { success: true };
 }
 
-/** Invite by email — requires SUPABASE_SERVICE_ROLE_KEY (admin client). */
-export async function inviteTeamMember(email: string, fullName?: string) {
+/** Invite by email via admin client (service role, server-only). */
+export async function inviteTeamMember(
+  email: string,
+  fullName?: string,
+  role: UserRole = "operator",
+) {
   const currentUser = await getCurrentUser();
   if (!currentUser || !canInviteMembers(currentUser.role)) {
     throw new Error("Only admins can invite team members");
   }
 
-  const { createAdminClient } = await import("@/lib/supabase/admin");
+  if (!canAssignRoleOnInvite(currentUser.role, role)) {
+    throw new Error("You cannot assign that role");
+  }
+
+  const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
+    "@/lib/supabase/admin"
+  );
   const { getSiteUrl } = await import("@/lib/site-url");
-  const admin = createAdminClient();
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    throw new Error(ADMIN_CLIENT_UNAVAILABLE_MESSAGE);
+  }
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName ?? email.split("@")[0], role: "operator", invited: true },
+    data: { full_name: fullName ?? email.split("@")[0], role, invited: true },
     redirectTo: `${getSiteUrl()}/auth/callback`,
   });
 

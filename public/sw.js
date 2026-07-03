@@ -1,6 +1,6 @@
 const CACHE_NAME = "meridian-v1";
 const OFFLINE_URL = "/offline";
-const PRECACHE = ["/", "/login", "/dashboard", "/clients", OFFLINE_URL];
+const PRECACHE = ["/", "/login", "/dashboard", "/clients", OFFLINE_URL, "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

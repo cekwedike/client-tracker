@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/team";
 import { canChangeRole, canInviteMembers, canRemoveMemberRole, isSuperadmin } from "@/lib/permissions";
 import { InviteMemberForm } from "@/components/team/invite-member-form";
+import { PermissionMatrix } from "@/components/settings/permission-matrix";
 import type { Profile, UserRole } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,7 @@ export function TeamPanel({
 }: TeamPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [selectedRole, setSelectedRole] = useState<UserRole>("operator");
   const isAdmin = canChangeRole(currentUserRole);
   const canInvite = canInviteMembers(currentUserRole);
   const isSuperAdmin = isSuperadmin(currentUserRole);
@@ -132,7 +134,7 @@ export function TeamPanel({
         ))}
       </div>
 
-      {canInvite && <InviteMemberForm />}
+      {canInvite && <InviteMemberForm currentUserRole={currentUserRole} />}
 
       {isAdmin && (
         <div className="glass-panel gradient-border p-4">
@@ -140,15 +142,35 @@ export function TeamPanel({
             <Shield className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold text-foreground">Roles & permissions</p>
           </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Select a role to see its permissions below.
+          </p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {[SUPERADMIN_ROLE, ...USER_ROLES_LIST].map((role) => (
-              <div key={role.value} className="rounded-lg bg-muted/30 px-3 py-2">
-                <Badge variant="outline" className={cn("text-[10px]", ROLE_BADGE[role.value])}>
-                  {role.label}
-                </Badge>
-                <p className="mt-1 text-xs text-muted-foreground">{role.description}</p>
-              </div>
-            ))}
+            {[SUPERADMIN_ROLE, ...USER_ROLES_LIST].map((role) => {
+              const isSelected = selectedRole === role.value;
+              return (
+                <button
+                  key={role.value}
+                  type="button"
+                  onClick={() => setSelectedRole(role.value)}
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-left transition-all",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                    isSelected
+                      ? "bg-primary/10 ring-2 ring-primary/50 shadow-[0_0_12px_oklch(0.72_0.14_85_/_12%)]"
+                      : "bg-muted/30 hover:bg-muted/50",
+                  )}
+                >
+                  <Badge variant="outline" className={cn("text-[10px]", ROLE_BADGE[role.value])}>
+                    {role.label}
+                  </Badge>
+                  <p className="mt-1 text-xs text-muted-foreground">{role.description}</p>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-4 rounded-lg border border-border/40 bg-muted/20 p-4">
+            <PermissionMatrix selectedRole={selectedRole} compact />
           </div>
         </div>
       )}

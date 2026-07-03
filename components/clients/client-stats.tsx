@@ -1,15 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Building2, Clock, Target, Users } from "lucide-react";
-import {
-  DashboardStatSheets,
-  type DashboardStatPanel,
-} from "@/components/dashboard/dashboard-stat-sheets";
+import type { DashboardStatPanel } from "@/components/dashboard/dashboard-stat-sheets";
 import type { ClientDashboardSummary, ClientWithRelations, Profile } from "@/lib/types";
 import { getTimezoneAbbreviation } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { MotionCard, MotionStagger } from "@/components/layout/motion";
+
+const DashboardStatSheets = dynamic(
+  () =>
+    import("@/components/dashboard/dashboard-stat-sheets").then((mod) => ({
+      default: mod.DashboardStatSheets,
+    })),
+  { ssr: false },
+);
 
 function StatCard({
   label,
@@ -110,7 +116,7 @@ export function ClientStats({
         <StatCard
           label="PPL Clients"
           value={ppl}
-          sub="Pay-per-lead"
+          sub="Pay-Per-Lead"
           icon={Target}
           accent="bg-deal-ppl/15 text-deal-ppl-fg"
           index={1}
@@ -119,7 +125,7 @@ export function ClientStats({
         <StatCard
           label="PPM Clients"
           value={ppm}
-          sub="Pay-per-meeting"
+          sub="Pay-Per-Meeting"
           icon={Users}
           accent="bg-deal-ppm/15 text-deal-ppm-fg"
           index={2}

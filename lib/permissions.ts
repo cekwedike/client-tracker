@@ -78,3 +78,18 @@ export function canExportClients(role: UserRole): boolean {
 export function canInviteMembers(role: UserRole): boolean {
   return isPlatformAdmin(role);
 }
+
+/** Roles an actor may assign when inviting a new team member. */
+export function getInviteAssignableRoles(actorRole: UserRole): UserRole[] {
+  if (isSuperadmin(actorRole)) {
+    return ["superadmin", "admin", "manager", "operator", "viewer"];
+  }
+  if (isPlatformAdmin(actorRole)) {
+    return ["manager", "operator", "viewer"];
+  }
+  return [];
+}
+
+export function canAssignRoleOnInvite(actorRole: UserRole, targetRole: UserRole): boolean {
+  return getInviteAssignableRoles(actorRole).includes(targetRole);
+}

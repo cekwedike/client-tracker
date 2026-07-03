@@ -31,6 +31,13 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const pathname = request.nextUrl.pathname;
+  const isPublicAsset =
+    pathname === "/manifest.webmanifest" || pathname === "/sw.js";
+
+  if (isPublicAsset) {
+    return supabaseResponse;
+  }
+
   const isSetupRoute = pathname.startsWith("/setup");
 
   if (!isConfigured()) {

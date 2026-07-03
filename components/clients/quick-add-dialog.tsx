@@ -27,7 +27,7 @@ import {
   quickAddClientSchema,
   type QuickAddClientValues,
 } from "@/lib/validations/client";
-import { TIMEZONE_OPTIONS } from "@/lib/types";
+import { TIMEZONE_OPTIONS, getDealTypeLabel } from "@/lib/types";
 import { Plus } from "lucide-react";
 
 export function QuickAddClientDialog() {
@@ -126,7 +126,9 @@ export function QuickAddClientDialog() {
               }
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {getDealTypeLabel(form.watch("billing_model"))}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ppl">Pay-per-Lead (PPL)</SelectItem>

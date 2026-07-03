@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { DateTime } from "luxon";
 import { useSettings } from "@/components/providers/settings-provider";
 import { formatLocalTime, getTimezoneAbbreviation } from "@/lib/timezone";
 import { resolveOperatorTimezone } from "@/lib/settings";
+import type { TimeFormat } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 function getUserTimezone() {
@@ -15,25 +16,22 @@ function getUserTimezone() {
   }
 }
 
-export function LiveClock({
-  timezone,
+const LiveClockDisplay = memo(function LiveClockDisplay({
+  tz,
+  timeFormat,
+  hydrated,
   size = "md",
   showTimezone = true,
   className,
 }: {
-  timezone?: string;
+  tz: string;
+  timeFormat: TimeFormat;
+  hydrated: boolean;
   size?: "sm" | "md" | "lg" | "hero";
   showTimezone?: boolean;
   className?: string;
 }) {
-  const settings = useSettings();
-  const { timeFormat, hydrated } = settings;
-  const tz =
-    timezone ??
-    (hydrated ? resolveOperatorTimezone(settings) : getUserTimezone());
-  const [now, setNow] = useState<DateTime | null>(() =>
-    DateTime.now().setZone(timezone ?? getUserTimezone()),
-  );
+  const [now, setNow] = useState<DateTime | null>(() => DateTime.now().setZone(tz));
 
   useEffect(() => {
     const tick = () => setNow(DateTime.now().setZone(tz));
@@ -82,5 +80,34 @@ export function LiveClock({
         </p>
       )}
     </div>
+  );
+});
+
+export function LiveClock({
+  timezone,
+  size = "md",
+  showTimezone = true,
+  className,
+}: {
+  timezone?: string;
+  size?: "sm" | "md" | "lg" | "hero";
+  showTimezone?: boolean;
+  className?: string;
+}) {
+  const settings = useSettings();
+  const { timeFormat, hydrated } = settings;
+  const tz =
+    timezone ??
+    (hydrated ? resolveOperatorTimezone(settings) : getUserTimezone());
+
+  return (
+    <LiveClockDisplay
+      tz={tz}
+      timeFormat={timeFormat}
+      hydrated={hydrated}
+      size={size}
+      showTimezone={showTimezone}
+      className={className}
+    />
   );
 }

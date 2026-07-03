@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { memo, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import type {
   ClientTier,
   Profile,
 } from "@/lib/types";
+import { getDealTypeShortLabel } from "@/lib/types";
 import {
   formatLocalDateTime,
   getTimezoneAbbreviation,
@@ -85,13 +86,6 @@ export function DashboardStatSheets({
   profiles,
 }: DashboardStatSheetsProps) {
   const [totalFilter, setTotalFilter] = useState<TotalFilter>("all");
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (panel !== "timezones" || !open) return;
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, [panel, open]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setTotalFilter("all");
@@ -125,9 +119,8 @@ export function DashboardStatSheets({
       list.sort((a, b) => a.company_name.localeCompare(b.company_name));
     }
 
-    void tick;
     return list;
-  }, [clients, panel, totalFilter, tick]);
+  }, [clients, panel, totalFilter]);
 
   const meta = panel ? PANEL_META[panel] : null;
 
@@ -221,8 +214,19 @@ export function DashboardStatSheets({
 }
 
 function TimezoneClientRow({ client }: { client: ClientDashboardSummary }) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const abbr = getTimezoneAbbreviation(client.timezone);
   const region = getTimezoneRegion(client.timezone);
+  const localParts = useMemo(() => {
+    void tick;
+    return formatLocalDateTime(client.timezone).split(" · ");
+  }, [client.timezone, tick]);
 
   return (
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
@@ -239,10 +243,10 @@ function TimezoneClientRow({ client }: { client: ClientDashboardSummary }) {
         </div>
         <div className="shrink-0 text-right">
           <p className="font-mono text-sm font-semibold tabular-nums text-primary">
-            {formatLocalDateTime(client.timezone).split(" · ")[1]}
+            {localParts[1]}
           </p>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            {formatLocalDateTime(client.timezone).split(" · ")[0]}
+            {localParts[0]}
           </p>
         </div>
       </div>
@@ -250,7 +254,7 @@ function TimezoneClientRow({ client }: { client: ClientDashboardSummary }) {
   );
 }
 
-function AssignmentClientRow({
+const AssignmentClientRow = memo(function AssignmentClientRow({
   client,
   profiles,
   showBilling,
@@ -311,13 +315,15 @@ function AssignmentClientRow({
                 if (!value || value === client.billing_model) return;
                 runUpdate(
                   () => updateClientBillingModel(client.id, value as BillingModel),
-                  `Moved to ${value.toUpperCase()}`,
+                  `Moved to ${getDealTypeShortLabel(value)}`,
                 );
               }}
               disabled={isPending}
             >
               <SelectTrigger className="h-8 w-full text-xs">
-                <SelectValue />
+                <SelectValue>
+                  {getDealTypeShortLabel(client.billing_model)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ppl">Pay-per-Lead (PPL)</SelectItem>
@@ -382,7 +388,7 @@ function AssignmentClientRow({
       </div>
     </div>
   );
-}
+});
 
 function Field({
   label,

@@ -24,6 +24,7 @@ import {
 } from "@/lib/validations/client";
 import {
   DEAL_TYPES,
+  getDealTypeLabel,
   CLIENT_STATUSES,
   CLIENT_TIERS,
   CONTACT_ROLES,
@@ -245,7 +246,11 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
                 form.setValue("billing_model", (v as ClientFormValues["billing_model"]) ?? "ppl")
               }
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {getDealTypeLabel(form.watch("billing_model"))}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {DEAL_TYPES.map((b) => (
                   <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>

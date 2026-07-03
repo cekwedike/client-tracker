@@ -227,6 +227,19 @@ export const DEAL_TYPES: { value: BillingModel; label: string; kpi: string }[] =
   { value: "ppm", label: "Pay-per-Meeting (PPM)", kpi: "Meetings booked" },
 ];
 
+export function getDealTypeShortLabel(model: BillingModel | string): string {
+  if (model === "ppl") return "PPL";
+  if (model === "ppm") return "PPM";
+  return String(model).toUpperCase();
+}
+
+export function getDealTypeLabel(model: BillingModel): string {
+  return (
+    DEAL_TYPES.find((deal) => deal.value === model)?.label ??
+    getDealTypeShortLabel(model)
+  );
+}
+
 /** @deprecated Use DEAL_TYPES — kept for DB field name compatibility */
 export const BILLING_MODELS = DEAL_TYPES;
 
