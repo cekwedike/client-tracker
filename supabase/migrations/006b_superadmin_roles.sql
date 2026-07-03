@@ -1,7 +1,8 @@
--- Meridian: superadmin role + first-user bootstrap
--- Run after 005_client_assignment.sql
-
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'superadmin';
+-- Meridian: superadmin role — step 2 of 2 (RLS, bootstrap, profile promotion)
+-- Run after 006a_superadmin_enum.sql (must be a separate transaction / query run)
+--
+-- IMPORTANT (Supabase SQL Editor): Run 006a_superadmin_enum.sql first, wait for
+-- success, then run this file.
 
 -- Treat superadmin like admin in RLS checks
 CREATE OR REPLACE FUNCTION is_platform_admin()
