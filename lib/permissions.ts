@@ -1,29 +1,41 @@
 /**
  * Meridian role-based permission matrix
  *
- * | Action                    | admin | manager | operator | viewer |
- * |---------------------------|-------|---------|----------|--------|
- * | View clients/tasks/team   |  ✓    |   ✓     |    ✓     |   ✓    |
- * | Edit clients              |  ✓    |   ✓     | assigned |   ✗    |
- * | Manage templates (CRUD)   |  ✓    |   ✓     |    ✓     |   ✗    |
- * | Delete templates          |  ✓    |   ✗     |    ✗     |   ✗    |
- * | Assign tasks              |  ✓    |   ✓     |    ✗     |   ✗    |
- * | Change member roles       |  ✓    |   ✗     |    ✗     |   ✗    |
- * | Remove team members       |  ✓    |   ✗     |    ✗     |   ✗    |
- * | Refresh spreadsheet       |  ✓    |   ✗     |    ✗     |   ✗    |
- * | Delete clients            |  ✓    |   ✗     |    ✗     |   ✗    |
+ * | Action                    | superadmin | admin | manager | operator | viewer |
+ * |---------------------------|------------|-------|---------|----------|--------|
+ * | View clients/tasks/team   |     ✓      |   ✓   |    ✓    |    ✓     |   ✓    |
+ * | Edit clients              |     ✓      |   ✓   |    ✓    | assigned |   ✗    |
+ * | Manage templates (CRUD)   |     ✓      |   ✓   |    ✓    |    ✓     |   ✗    |
+ * | Delete templates          |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
+ * | Assign tasks              |     ✓      |   ✓   |    ✓    |    ✗     |   ✗    |
+ * | Invite team members       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
+ * | Change member roles       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
+ * | Remove team members       |     ✓      |   ✓*  |    ✗    |    ✗     |   ✗    |
+ * | Refresh spreadsheet       |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
+ * | Delete clients            |     ✓      |   ✓   |    ✗    |    ✗     |   ✗    |
+ *
+ * * Admins cannot remove other admins or superadmins; superadmin can remove admins.
  */
 import type { UserRole } from "@/lib/types";
 
-const MANAGER_PLUS: UserRole[] = ["admin", "manager"];
-const OPS_ROLES: UserRole[] = ["admin", "manager", "operator"];
+const PLATFORM_ADMIN: UserRole[] = ["superadmin", "admin"];
+const MANAGER_PLUS: UserRole[] = ["superadmin", "admin", "manager"];
+const OPS_ROLES: UserRole[] = ["superadmin", "admin", "manager", "operator"];
+
+export function isPlatformAdmin(role: UserRole): boolean {
+  return PLATFORM_ADMIN.includes(role);
+}
+
+export function isSuperadmin(role: UserRole): boolean {
+  return role === "superadmin";
+}
 
 export function canManageTemplates(role: UserRole): boolean {
   return OPS_ROLES.includes(role);
 }
 
 export function canDeleteTemplate(role: UserRole): boolean {
-  return role === "admin";
+  return isPlatformAdmin(role);
 }
 
 export function canAssignTasks(role: UserRole): boolean {
@@ -31,29 +43,32 @@ export function canAssignTasks(role: UserRole): boolean {
 }
 
 export function canChangeRole(role: UserRole): boolean {
-  return role === "admin";
+  return isPlatformAdmin(role);
 }
 
 export function canRemoveMember(role: UserRole): boolean {
-  return role === "admin";
+  return isPlatformAdmin(role);
 }
 
 export function canRefreshSpreadsheet(role: UserRole): boolean {
-  return role === "admin";
+  return isPlatformAdmin(role);
 }
 
 export function canEditClient(role: UserRole, isAssignedOwner: boolean): boolean {
-  if (role === "admin" || role === "manager") return true;
+  if (isPlatformAdmin(role) || role === "manager") return true;
   if (role === "operator") return isAssignedOwner;
   return false;
 }
 
 export function canRemoveAdmin(actorRole: UserRole, targetRole: UserRole): boolean {
+  if (targetRole === "superadmin") return false;
+  if (actorRole === "superadmin") return true;
   return actorRole === "admin" && targetRole !== "admin";
 }
 
-export function canBulkAssign(role: UserRole): boolean {
-  return MANAGER_PLUS.includes(role);
+export function canRemoveMemberRole(actorRole: UserRole, targetRole: UserRole): boolean {
+  if (!canRemoveMember(actorRole)) return false;
+  return canRemoveAdmin(actorRole, targetRole);
 }
 
 export function canExportClients(role: UserRole): boolean {
@@ -61,5 +76,5 @@ export function canExportClients(role: UserRole): boolean {
 }
 
 export function canInviteMembers(role: UserRole): boolean {
-  return role === "admin";
+  return isPlatformAdmin(role);
 }

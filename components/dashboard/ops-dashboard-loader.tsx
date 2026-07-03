@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useContactWindowNotifications } from "@/hooks/use-contact-window-notifications";
 import { useSettings } from "@/components/providers/settings-provider";
-import type { ActivityLogEntry, ClientDashboardSummary, Task } from "@/lib/types";
+import type { ClientDashboardSummary, Profile } from "@/lib/types";
 
 const OpsDashboard = dynamic(
   () =>
@@ -20,15 +20,13 @@ const OpsDashboard = dynamic(
 
 export function OpsDashboardLoader({
   clients,
-  tasks,
-  activity,
+  profiles = [],
 }: {
   clients: ClientDashboardSummary[];
-  tasks: Task[];
-  activity: ActivityLogEntry[];
+  profiles?: Profile[];
 }) {
   const { browserNotifications } = useSettings();
   useContactWindowNotifications(clients, browserNotifications);
 
-  return <OpsDashboard clients={clients} tasks={tasks} activity={activity} />;
+  return <OpsDashboard clients={clients} profiles={profiles} />;
 }

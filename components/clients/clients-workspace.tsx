@@ -10,22 +10,13 @@ import {
   KeyboardShortcutsModal,
   useClientKeyboardShortcuts,
 } from "@/components/clients/keyboard-shortcuts-modal";
-import { trackRecentClient } from "@/lib/recent-clients";
-import { canBulkAssign, canExportClients } from "@/lib/permissions";
-import type {
-  ClientWithRelations,
-  MessageTemplate,
-  Profile,
-  Task,
-  UserRole,
-} from "@/lib/types";
+import { canExportClients } from "@/lib/permissions";
+import type { ClientWithRelations, Task, UserRole } from "@/lib/types";
 
 interface ClientsWorkspaceProps {
   clients: ClientWithRelations[];
   initialClientId?: string | null;
   tasks?: Task[];
-  profiles?: Profile[];
-  templates?: MessageTemplate[];
   userRole?: UserRole;
 }
 
@@ -33,8 +24,6 @@ export function ClientsWorkspace({
   clients,
   initialClientId,
   tasks = [],
-  profiles = [],
-  templates = [],
   userRole = "operator",
 }: ClientsWorkspaceProps) {
   const router = useRouter();
@@ -62,7 +51,6 @@ export function ClientsWorkspace({
   }, [router, searchParams]);
 
   const handleSelectClient = useCallback((client: ClientWithRelations) => {
-    trackRecentClient(client.id);
     setSelectedClientId(client.id);
     setSheetOpen(true);
   }, []);
@@ -111,9 +99,6 @@ export function ClientsWorkspace({
       <ClientFilters searchInputRef={searchInputRef} onClearSearch={clearSearch} />
       <BulkActionsBar
         selectedIds={[...selectedIds]}
-        profiles={profiles}
-        templates={templates}
-        canAssign={canBulkAssign(userRole)}
         canExport={canExportClients(userRole)}
         onClear={() => setSelectedIds(new Set())}
       />

@@ -25,6 +25,7 @@ import {
 import {
   DEAL_TYPES,
   CLIENT_STATUSES,
+  CLIENT_TIERS,
   CONTACT_ROLES,
   TIMEZONE_OPTIONS,
   type ClientWithRelations,
@@ -52,6 +53,7 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
           primary_contact_name: client.primary_contact_name ?? "",
           industry: client.industry ?? "",
           status: client.status,
+          client_tier: client.client_tier ?? "full",
           billing_model: client.billing_model,
           billing_notes: client.billing_notes ?? "",
           city: client.city ?? "",
@@ -68,6 +70,7 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
           smartlead_inbox_url: client.smartlead_inbox_url ?? "",
           smartlead_operator_notes: client.smartlead_operator_notes ?? "",
           primary_owner_id: client.primary_owner_id,
+          handled_by_id: client.handled_by_id,
           do_not_contact_before: client.do_not_contact_before,
           do_not_contact_after: client.do_not_contact_after,
           holiday_notes: client.holiday_notes ?? "",
@@ -103,6 +106,7 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
           company_name: "",
           primary_contact_name: "",
           status: "active",
+          client_tier: "full",
           billing_model: "ppl",
           country: "US",
           timezone: "America/New_York",
@@ -218,6 +222,22 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Client Tier</Label>
+            <Select
+              value={form.watch("client_tier")}
+              onValueChange={(v) =>
+                form.setValue("client_tier", (v as ClientFormValues["client_tier"]) ?? "full")
+              }
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CLIENT_TIERS.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Deal Type</Label>
             <Select
               value={form.watch("billing_model")}
@@ -229,6 +249,21 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
               <SelectContent>
                 {DEAL_TYPES.map((b) => (
                   <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Handled By</Label>
+            <Select
+              value={form.watch("handled_by_id") ?? ""}
+              onValueChange={(v) => form.setValue("handled_by_id", v || null)}
+            >
+              <SelectTrigger><SelectValue placeholder="Auto-assign by tier" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Auto-assign by tier</SelectItem>
+                {profiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.full_name ?? p.email}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

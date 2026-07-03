@@ -17,10 +17,11 @@ function subscribePinned(onChange: () => void) {
 
 interface PinButtonProps {
   clientId: string;
+  companyName: string;
   className?: string;
 }
 
-export function PinButton({ clientId, className }: PinButtonProps) {
+export function PinButton({ clientId, companyName, className }: PinButtonProps) {
   const pinned = useSyncExternalStore(
     subscribePinned,
     () => getPinnedClientIds().includes(clientId),
@@ -31,9 +32,9 @@ export function PinButton({ clientId, className }: PinButtonProps) {
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      togglePinnedClient(clientId);
+      togglePinnedClient(clientId, companyName);
     },
-    [clientId],
+    [clientId, companyName],
   );
 
   return (

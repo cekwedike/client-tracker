@@ -105,6 +105,7 @@ export function ClientDetailSheet({
       })
     : "";
   const ownerName = client.primary_owner?.full_name ?? "Unassigned";
+  const handlerName = client.handled_by?.full_name ?? "Unassigned";
 
   const sectionMotion = reduceMotion
     ? {}
@@ -268,6 +269,11 @@ export function ClientDetailSheet({
                 <UserCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="text-muted-foreground">Owner:</span>
                 <span className="font-medium">{ownerName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">Handled by:</span>
+                <span className="font-medium">{handlerName}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Location: </span>

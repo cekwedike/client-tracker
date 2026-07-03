@@ -5,8 +5,10 @@ import { getCurrentUser } from "@/lib/actions/auth";
 import {
   canChangeRole,
   canInviteMembers,
-  canRemoveAdmin,
   canRemoveMember,
+  canRemoveMemberRole,
+  isPlatformAdmin,
+  isSuperadmin,
 } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingSchemaError } from "@/lib/supabase/schema";
@@ -64,8 +66,17 @@ export async function updateMemberRole(userId: string, role: UserRole) {
     throw new Error("Only admins can change roles");
   }
 
-  if (userId === currentUser.id && role !== "admin") {
-    throw new Error("You cannot demote yourself");
+  if (userId === currentUser.id) {
+    if (isSuperadmin(currentUser.role) && !isSuperadmin(role)) {
+      throw new Error("You cannot demote yourself");
+    }
+    if (currentUser.role === "admin" && !isPlatformAdmin(role)) {
+      throw new Error("You cannot demote yourself");
+    }
+  }
+
+  if (role === "superadmin" && !isSuperadmin(currentUser.role)) {
+    throw new Error("Only superadmins can assign the superadmin role");
   }
 
   const supabase = await createClient();
@@ -75,8 +86,12 @@ export async function updateMemberRole(userId: string, role: UserRole) {
     .eq("id", userId)
     .single();
 
+  if (target?.role === "superadmin" && !isSuperadmin(currentUser.role)) {
+    throw new Error("Only superadmins can change a superadmin role");
+  }
+
   if (target?.role === "admin" && role !== "admin" && userId !== currentUser.id) {
-    // Admins can change other admins' roles
+    // Platform admins can change other admins' roles
   }
 
   const { error } = await supabase
@@ -109,8 +124,12 @@ export async function removeTeamMember(userId: string) {
     .single();
 
   if (!target) throw new Error("Member not found");
-  if (target.role === "admin" && !canRemoveAdmin(currentUser.role, target.role)) {
-    throw new Error("Cannot remove an admin");
+  if (!canRemoveMemberRole(currentUser.role, target.role)) {
+    throw new Error(
+      target.role === "superadmin"
+        ? "Cannot remove a superadmin"
+        : "Cannot remove an admin",
+    );
   }
 
   const { error } = await supabase
@@ -166,7 +185,7 @@ export async function inviteTeamMember(email: string, fullName?: string) {
   const admin = createAdminClient();
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName ?? email.split("@")[0], role: "operator" },
+    data: { full_name: fullName ?? email.split("@")[0], role: "operator", invited: true },
     redirectTo: `${getSiteUrl()}/auth/callback`,
   });
 

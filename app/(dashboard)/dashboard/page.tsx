@@ -1,16 +1,11 @@
 import { OpsDashboardLoader } from "@/components/dashboard/ops-dashboard-loader";
-import { getClientsForDashboard } from "@/lib/actions/clients";
-import { getRecentActivity } from "@/lib/actions/activity";
-import { getTasks } from "@/lib/actions/tasks";
+import { getClientsForDashboard, getProfiles } from "@/lib/actions/clients";
 
 export default async function DashboardPage() {
-  const [clients, tasks, activity] = await Promise.all([
+  const [clients, profiles] = await Promise.all([
     getClientsForDashboard(),
-    getTasks(),
-    getRecentActivity(12),
+    getProfiles(),
   ]);
 
-  return (
-    <OpsDashboardLoader clients={clients} tasks={tasks} activity={activity} />
-  );
+  return <OpsDashboardLoader clients={clients} profiles={profiles} />;
 }

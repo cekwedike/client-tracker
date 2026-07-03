@@ -13,6 +13,20 @@ function isConfigured(): boolean {
   );
 }
 
+async function hasAuthorizedProfile(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return false;
+  return data.is_active !== false;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -31,6 +45,13 @@ export async function updateSession(request: NextRequest) {
   if (pathname === "/setup") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (pathname.startsWith("/signup")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("error", "invite_only");
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -60,22 +81,39 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
     pathname.startsWith("/auth/callback");
 
-  if (!user && !isAuthRoute && pathname !== "/" && !pathname.startsWith("/setup")) {
+  if (!user && !isAuthRoute && pathname !== "/" && !pathname.startsWith("/setup") && pathname !== "/offline") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (
-    user &&
-    (pathname === "/" ||
-      pathname.startsWith("/login") ||
-      pathname.startsWith("/signup"))
-  ) {
+  const isDashboardRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/clients") ||
+    pathname.startsWith("/templates") ||
+    pathname.startsWith("/tasks") ||
+    pathname.startsWith("/team") ||
+    pathname.startsWith("/settings");
+
+  if (user && isDashboardRoute) {
+    const authorized = await hasAuthorizedProfile(supabase, user.id);
+    if (!authorized) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set("error", "invite_only");
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  if (user && (pathname === "/" || pathname.startsWith("/login"))) {
+    const authorized = await hasAuthorizedProfile(supabase, user.id);
+    if (!authorized) {
+      return supabaseResponse;
+    }
+
     const dbReady = await checkDatabaseReadyInMiddleware(
       url,
       key,

@@ -15,113 +15,12 @@ import {
 import { LiveClock } from "@/components/dashboard/live-clock";
 import { ClientStats } from "@/components/clients/client-stats";
 import { ContactWindowAlerts } from "@/components/dashboard/contact-window-alerts";
-import { ActNowWidget } from "@/components/dashboard/act-now-widget";
-import { RecentActivityFeed } from "@/components/dashboard/recent-activity-feed";
-import { MotionFadeUp, MotionStagger } from "@/components/layout/motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type {
-  ActivityLogEntry,
   ClientDashboardSummary,
   ClientWithRelations,
-  Task,
+  Profile,
 } from "@/lib/types";
-import {
-  getTimezoneAbbreviation,
-  getTimezoneRegion,
-} from "@/lib/timezone";
-import { cn } from "@/lib/utils";
-
-function SignalBars({ level, reduceMotion }: { level: number; reduceMotion: boolean }) {
-  return (
-    <div className="flex items-end gap-0.5 h-8">
-      {[1, 2, 3, 4, 5].map((bar) => (
-        <motion.div
-          key={bar}
-          className={cn(
-            "w-1 rounded-full",
-            bar <= level ? "bg-primary" : "bg-primary/20",
-          )}
-          style={{ height: `${bar * 20}%` }}
-          animate={
-            reduceMotion || bar > level
-              ? undefined
-              : { opacity: [0.5, 1, 0.5] }
-          }
-          transition={{
-            duration: 1.2 + bar * 0.15,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function TimezonePanel({ clients }: { clients: ClientDashboardSummary[] }) {
-  const reduceMotion = useReducedMotion();
-
-  const tzGroups = clients.reduce<
-    Record<string, { count: number; clients: ClientDashboardSummary[] }>
-  >((acc, client) => {
-    const abbr = getTimezoneAbbreviation(client.timezone);
-    if (!acc[abbr]) acc[abbr] = { count: 0, clients: [] };
-    acc[abbr].count++;
-    acc[abbr].clients.push(client);
-    return acc;
-  }, {});
-
-  const sorted = Object.entries(tzGroups).sort((a, b) => b[1].count - a[1].count);
-
-  return (
-    <MotionStagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {sorted.map(([abbr, { count, clients: tzClients }], index) => (
-        <MotionFadeUp key={abbr} delay={index * 0.05}>
-          <div className="glass-panel gradient-border group p-4 transition-all hover:border-primary/30 hover:shadow-[0_8px_32px_oklch(0_0_0_/_35%)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="border-primary/40 bg-primary/10 font-mono text-primary"
-                  >
-                    {abbr}
-                  </Badge>
-                  <span className="text-2xl font-bold tabular-nums text-foreground">
-                    {count}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {getTimezoneRegion(tzClients[0]?.timezone ?? "")}
-                </p>
-              </div>
-              <SignalBars
-                level={Math.min(5, Math.ceil(count / 2) + 1)}
-                reduceMotion={!!reduceMotion}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1">
-              {tzClients.slice(0, 4).map((c) => (
-                <span
-                  key={c.id}
-                  className="truncate rounded-md bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground"
-                >
-                  {c.company_name}
-                </span>
-              ))}
-              {tzClients.length > 4 && (
-                <span className="text-[10px] text-subtle">
-                  +{tzClients.length - 4} more
-                </span>
-              )}
-            </div>
-          </div>
-        </MotionFadeUp>
-      ))}
-    </MotionStagger>
-  );
-}
+import { getTimezoneAbbreviation } from "@/lib/timezone";
 
 function QuickActions() {
   const reduceMotion = useReducedMotion();
@@ -184,12 +83,10 @@ function QuickActions() {
 
 export function OpsDashboard({
   clients,
-  tasks = [],
-  activity = [],
+  profiles = [],
 }: {
   clients: ClientDashboardSummary[] | ClientWithRelations[];
-  tasks?: Task[];
-  activity?: ActivityLogEntry[];
+  profiles?: Profile[];
 }) {
   const reduceMotion = useReducedMotion();
   const ppl = clients.filter((c) => c.billing_model === "ppl").length;
@@ -247,7 +144,8 @@ export function OpsDashboard({
               Meridian
             </h1>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Live client coverage across {Object.keys(
+              Live client coverage across{" "}
+              {Object.keys(
                 clients.reduce<Record<string, number>>((acc, c) => {
                   acc[getTimezoneAbbreviation(c.timezone)] = 1;
                   return acc;
@@ -284,44 +182,9 @@ export function OpsDashboard({
         </div>
       </div>
 
-      <ClientStats clients={clients} />
+      <ClientStats clients={clients} profiles={profiles} />
 
       <ContactWindowAlerts clients={clients} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ActNowWidget clients={clients} tasks={tasks} />
-        <RecentActivityFeed entries={activity} />
-      </div>
-
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              Timezone Coverage
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Client distribution by region — know who&apos;s awake
-            </p>
-          </div>
-          <Link href="/clients">
-            <Button variant="outline" size="sm" className="gap-2">
-              View all
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
-        </div>
-        {clients.length > 0 ? (
-          <TimezonePanel clients={clients} />
-        ) : (
-          <div className="rounded-xl border border-dashed border-primary/30 p-8 text-center text-sm text-muted-foreground">
-            No clients loaded — run{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-primary">
-              pnpm seed
-            </code>{" "}
-            to import spreadsheet data
-          </div>
-        )}
-      </section>
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">

@@ -1,22 +1,13 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/actions/auth";
-import { getClients, getProfiles } from "@/lib/actions/clients";
-import { getMessageTemplates } from "@/lib/actions/templates";
+import { getClients } from "@/lib/actions/clients";
 import { getTasks } from "@/lib/actions/tasks";
-import type {
-  ClientWithRelations,
-  MessageTemplateWithClients,
-  Profile,
-  Task,
-  UserRole,
-} from "@/lib/types";
+import type { ClientWithRelations, Task, UserRole } from "@/lib/types";
 
 export interface ClientsPageData {
   clients: ClientWithRelations[];
   tasks: Task[];
-  profiles: Profile[];
-  templates: MessageTemplateWithClients[];
   userRole: UserRole;
 }
 
@@ -40,19 +31,15 @@ export async function safeGetClientsPageData(filters?: {
   billing_model?: string;
   status?: string;
 }): Promise<ClientsPageData> {
-  const [clients, tasks, profiles, templates, user] = await Promise.all([
+  const [clients, tasks, user] = await Promise.all([
     safeFetch("getClients", () => getClients(filters), []),
     safeFetch("getTasks", () => getTasks(), []),
-    safeFetch("getProfiles", () => getProfiles(), []),
-    safeFetch("getMessageTemplates", () => getMessageTemplates(), []),
     safeFetch("getCurrentUser", () => getCurrentUser(), null),
   ]);
 
   return {
     clients,
     tasks,
-    profiles: profiles ?? [],
-    templates,
     userRole: user?.role ?? "operator",
   };
 }

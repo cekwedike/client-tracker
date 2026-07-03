@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/actions/activity";
+import { resolveDefaultHandledById } from "@/lib/client-handlers";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingSchemaError } from "@/lib/supabase/schema";
 import { getDefaultBusinessHours } from "@/lib/timezone";
@@ -12,7 +13,13 @@ import {
   type QuickAddClientValues,
 } from "@/lib/validations/client";
 import { validateClientFormData } from "@/lib/validations/client-save";
-import type { ClientDashboardSummary, ClientWithRelations, Profile } from "@/lib/types";
+import type {
+  BillingModel,
+  ClientDashboardSummary,
+  ClientTier,
+  ClientWithRelations,
+  Profile,
+} from "@/lib/types";
 
 /** Lighter fetch for dashboard — omits heavy text fields */
 export async function getClientsForDashboard() {
@@ -25,6 +32,7 @@ export async function getClientsForDashboard() {
       company_name,
       primary_contact_name,
       status,
+      client_tier,
       billing_model,
       city,
       state_region,
@@ -32,14 +40,49 @@ export async function getClientsForDashboard() {
       do_not_contact_before,
       do_not_contact_after,
       smartlead_inbox_url,
+      handled_by_id,
       contacts(id, role, name, email, phone, cc_alias, is_default_cc),
       business_hours(id, client_id, day_of_week, start_time, end_time, is_closed),
-      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
+      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email),
+      handled_by:profiles!clients_handled_by_id_fkey(id, full_name, email)
     `,
     )
     .order("company_name");
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingSchemaError(error, "client_tier", "handled_by_id", "handled_by")) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("clients")
+        .select(
+          `
+          id,
+          company_name,
+          primary_contact_name,
+          status,
+          billing_model,
+          city,
+          state_region,
+          timezone,
+          do_not_contact_before,
+          do_not_contact_after,
+          smartlead_inbox_url,
+          contacts(id, role, name, email, phone, cc_alias, is_default_cc),
+          business_hours(id, client_id, day_of_week, start_time, end_time, is_closed),
+          primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
+        `,
+        )
+        .order("company_name");
+
+      if (fallbackError) throw new Error(fallbackError.message);
+      return (fallbackData ?? []).map((row) => ({
+        ...row,
+        client_tier: "full" as const,
+        handled_by_id: null,
+        handled_by: null,
+      })) as unknown as ClientDashboardSummary[];
+    }
+    throw new Error(error.message);
+  }
   return data as unknown as ClientDashboardSummary[];
 }
 
@@ -58,7 +101,8 @@ const CLIENTS_WITH_RELATIONS_SELECT = `
   *,
   contacts(*),
   business_hours(*),
-  primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email)
+  primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email),
+  handled_by:profiles!clients_handled_by_id_fkey(id, full_name, email)
 `;
 
 const CLIENTS_BASE_SELECT = `
@@ -149,7 +193,8 @@ export async function getClient(id: string) {
       *,
       contacts(*),
       business_hours(*),
-      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email, avatar_url)
+      primary_owner:profiles!clients_primary_owner_id_fkey(id, full_name, email, avatar_url),
+      handled_by:profiles!clients_handled_by_id_fkey(id, full_name, email, avatar_url)
     `,
     )
     .eq("id", id)
@@ -196,6 +241,44 @@ async function assertClientSaveValid(
   return issues.filter((i) => i.severity === "warning");
 }
 
+async function getProfileNameMap(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: (string | null | undefined)[],
+) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))] as string[];
+  if (uniqueIds.length === 0) return new Map<string, string>();
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .in("id", uniqueIds);
+
+  return new Map(
+    (data ?? []).map((p) => [p.id, p.full_name ?? p.email ?? "Unknown"]),
+  );
+}
+
+async function applyClientAssignmentDefaults(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clientData: Omit<ClientFormValues, "contacts" | "business_hours">,
+) {
+  const tier = clientData.client_tier ?? "full";
+  let handledById = clientData.handled_by_id ?? null;
+
+  if (!handledById) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name");
+    handledById = resolveDefaultHandledById(profiles ?? [], tier);
+  }
+
+  return {
+    ...clientData,
+    client_tier: tier,
+    handled_by_id: handledById,
+  };
+}
+
 export async function validateClientSave(
   values: ClientFormValues,
   excludeClientId?: string,
@@ -209,7 +292,8 @@ export async function createClientRecord(values: ClientFormValues) {
   await assertClientSaveValid(parsed);
   const supabase = await createClient();
 
-  const { contacts, business_hours, ...clientData } = parsed;
+  const { contacts, business_hours, ...rawClientData } = parsed;
+  const clientData = await applyClientAssignmentDefaults(supabase, rawClientData);
 
   const { data: client, error } = await supabase
     .from("clients")
@@ -262,6 +346,7 @@ export async function quickAddClient(values: QuickAddClientValues) {
     primary_contact_name: parsed.primary_contact_name,
     timezone: parsed.timezone,
     billing_model: parsed.billing_model,
+    client_tier: "full",
     status: "active",
     country: "US",
     contacts: [
@@ -389,6 +474,99 @@ export async function updateClientOwner(
   await logActivity(
     "owner_changed",
     { new_owner_id: ownerId, new_owner_name: ownerName },
+    clientId,
+  );
+
+  revalidatePath("/clients");
+  revalidatePath("/dashboard");
+  revalidatePath(`/clients/${clientId}`);
+  return { success: true };
+}
+
+export async function updateClientBillingModel(
+  clientId: string,
+  billingModel: BillingModel,
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clients")
+    .update({ billing_model: billingModel })
+    .eq("id", clientId);
+
+  if (error) throw new Error(error.message);
+
+  await logActivity(
+    "client_edited",
+    { field: "billing_model", billing_model: billingModel },
+    clientId,
+  );
+
+  revalidatePath("/clients");
+  revalidatePath("/dashboard");
+  revalidatePath(`/clients/${clientId}`);
+  return { success: true };
+}
+
+export async function updateClientTier(clientId: string, tier: ClientTier) {
+  const supabase = await createClient();
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name");
+
+  const defaultHandlerId = resolveDefaultHandledById(profiles ?? [], tier);
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      client_tier: tier,
+      handled_by_id: defaultHandlerId,
+    })
+    .eq("id", clientId);
+
+  if (error) throw new Error(error.message);
+
+  const handlerNames = await getProfileNameMap(supabase, [defaultHandlerId]);
+  await logActivity(
+    "client_edited",
+    {
+      field: "client_tier",
+      client_tier: tier,
+      handled_by_id: defaultHandlerId,
+      handled_by_name: defaultHandlerId
+        ? handlerNames.get(defaultHandlerId)
+        : null,
+    },
+    clientId,
+  );
+
+  revalidatePath("/clients");
+  revalidatePath("/dashboard");
+  revalidatePath(`/clients/${clientId}`);
+  return { success: true };
+}
+
+export async function updateClientHandledBy(
+  clientId: string,
+  handlerId: string | null,
+) {
+  const supabase = await createClient();
+
+  const handlerNames = await getProfileNameMap(supabase, [handlerId]);
+  const handlerName = handlerId
+    ? (handlerNames.get(handlerId) ?? "Unknown")
+    : "Unassigned";
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ handled_by_id: handlerId })
+    .eq("id", clientId);
+
+  if (error) throw new Error(error.message);
+
+  await logActivity(
+    "handler_changed",
+    { new_handler_id: handlerId, new_handler_name: handlerName },
     clientId,
   );
 

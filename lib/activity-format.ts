@@ -8,6 +8,8 @@ export function formatActivityMessage(entry: ActivityLogEntry): string {
   switch (entry.action) {
     case "owner_changed":
       return `${who} changed owner to ${String(d.new_owner_name ?? "Unassigned")}${client ? ` · ${client}` : ""}`;
+    case "handler_changed":
+      return `${who} changed handler to ${String(d.new_handler_name ?? "Unassigned")}${client ? ` · ${client}` : ""}`;
     case "template_assigned":
       return `${who} assigned template "${String(d.template_name ?? "")}"${client ? ` to ${client}` : ""}`;
     case "task_created":

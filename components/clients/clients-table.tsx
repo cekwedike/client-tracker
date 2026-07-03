@@ -143,7 +143,7 @@ const ClientRow = memo(function ClientRow({
           <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch xl:justify-between">
             <div className="min-w-0 xl:w-[28%]">
               <div className="flex flex-wrap items-center gap-2">
-                <PinButton clientId={client.id} />
+                <PinButton clientId={client.id} companyName={client.company_name} />
                 <h3
                   className={cn(
                     "text-lg font-bold tracking-tight text-foreground transition-colors",

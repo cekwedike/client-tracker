@@ -9,7 +9,7 @@ import {
   removeTeamMember,
   updateMemberRole,
 } from "@/lib/actions/team";
-import { canChangeRole, canInviteMembers, canRemoveMember } from "@/lib/permissions";
+import { canChangeRole, canInviteMembers, canRemoveMemberRole, isSuperadmin } from "@/lib/permissions";
 import { InviteMemberForm } from "@/components/team/invite-member-form";
 import type { Profile, UserRole } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { Shield, UserMinus, UserPlus, Users } from "lucide-react";
 
 const ROLE_BADGE: Record<UserRole, string> = {
+  superadmin: "border-amber-400/50 bg-amber-400/15 text-amber-300",
   admin: "border-primary/40 bg-primary/15 text-primary",
   manager: "border-deal-ppl/40 bg-deal-ppl/15 text-deal-ppl-fg",
   operator: "border-border bg-muted/50 text-muted-foreground",
@@ -46,6 +47,12 @@ export const USER_ROLES_LIST: { value: UserRole; label: string; description: str
   { value: "operator", label: "Operator", description: "View/edit assigned work" },
   { value: "viewer", label: "Viewer", description: "Read-only access" },
 ];
+
+const SUPERADMIN_ROLE = {
+  value: "superadmin" as const,
+  label: "Superadmin",
+  description: "Platform owner — invite users, full settings",
+};
 
 interface TeamPanelProps {
   members: Profile[];
@@ -62,7 +69,7 @@ export function TeamPanel({
   const [isPending, startTransition] = useTransition();
   const isAdmin = canChangeRole(currentUserRole);
   const canInvite = canInviteMembers(currentUserRole);
-  const canRemove = canRemoveMember(currentUserRole);
+  const isSuperAdmin = isSuperadmin(currentUserRole);
 
   const activeCount = members.filter((m) => m.is_active !== false).length;
 
@@ -134,7 +141,7 @@ export function TeamPanel({
             <p className="text-sm font-semibold text-foreground">Roles & permissions</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            {USER_ROLES_LIST.map((role) => (
+            {[SUPERADMIN_ROLE, ...USER_ROLES_LIST].map((role) => (
               <div key={role.value} className="rounded-lg bg-muted/30 px-3 py-2">
                 <Badge variant="outline" className={cn("text-[10px]", ROLE_BADGE[role.value])}>
                   {role.label}
@@ -176,6 +183,16 @@ export function TeamPanel({
               members.map((member) => {
               const inactive = member.is_active === false;
               const isSelf = member.id === currentUserId;
+              const canEditRole =
+                isAdmin &&
+                !isSelf &&
+                !inactive &&
+                (member.role !== "superadmin" || isSuperAdmin);
+              const canRemove = canRemoveMemberRole(currentUserRole, member.role);
+              const roleOptions =
+                isSuperAdmin && member.role === "superadmin"
+                  ? [SUPERADMIN_ROLE, ...USER_ROLES_LIST]
+                  : USER_ROLES_LIST;
               return (
                 <TableRow key={member.id} className={cn(inactive && "opacity-50")}>
                   <TableCell>
@@ -204,7 +221,7 @@ export function TeamPanel({
                     {member.email}
                   </TableCell>
                   <TableCell>
-                    {isAdmin && !isSelf && !inactive ? (
+                    {canEditRole ? (
                       <Select
                         value={member.role}
                         onValueChange={(v) =>
@@ -216,7 +233,7 @@ export function TeamPanel({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {USER_ROLES_LIST.map((r) => (
+                          {roleOptions.map((r) => (
                             <SelectItem key={r.value} value={r.value}>
                               {r.label}
                             </SelectItem>
@@ -246,7 +263,7 @@ export function TeamPanel({
                             <UserPlus className="h-3.5 w-3.5" />
                             Reactivate
                           </Button>
-                        ) : canRemove && member.role !== "admin" ? (
+                        ) : canRemove ? (
                           <Button
                             variant="ghost"
                             size="sm"

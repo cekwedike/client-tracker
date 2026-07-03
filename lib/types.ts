@@ -1,5 +1,6 @@
-export type UserRole = "admin" | "manager" | "operator" | "viewer";
+export type UserRole = "superadmin" | "admin" | "manager" | "operator" | "viewer";
 export type BillingModel = "ppl" | "ppm";
+export type ClientTier = "trial" | "full";
 export type ClientStatus = "active" | "paused" | "churned";
 export type ContactRole = "primary" | "cc_manager" | "billing" | "escalation";
 export type TaskStatus = "backlog" | "in_progress" | "waiting_on_client" | "done";
@@ -43,6 +44,7 @@ export interface Client {
   primary_contact_name: string | null;
   industry: string | null;
   status: ClientStatus;
+  client_tier: ClientTier;
   billing_model: BillingModel;
   billing_notes: string | null;
   city: string | null;
@@ -59,6 +61,7 @@ export interface Client {
   smartlead_inbox_url: string | null;
   smartlead_operator_notes: string | null;
   primary_owner_id: string | null;
+  handled_by_id: string | null;
   do_not_contact_before: string | null;
   do_not_contact_after: string | null;
   holiday_notes: string | null;
@@ -150,6 +153,7 @@ export interface Report {
 
 export type ActivityAction =
   | "owner_changed"
+  | "handler_changed"
   | "template_assigned"
   | "task_created"
   | "task_completed"
@@ -173,6 +177,7 @@ export interface ClientWithRelations extends Client {
   contacts: Contact[];
   business_hours: BusinessHour[];
   primary_owner?: Profile | null;
+  handled_by?: Profile | null;
 }
 
 /** Subset of client fields used on dashboard (lighter query) */
@@ -182,6 +187,7 @@ export type ClientDashboardSummary = Pick<
   | "company_name"
   | "primary_contact_name"
   | "status"
+  | "client_tier"
   | "billing_model"
   | "city"
   | "state_region"
@@ -189,11 +195,18 @@ export type ClientDashboardSummary = Pick<
   | "do_not_contact_before"
   | "do_not_contact_after"
   | "smartlead_inbox_url"
+  | "handled_by_id"
 > & {
   contacts: Contact[];
   business_hours: BusinessHour[];
   primary_owner?: Profile | null;
+  handled_by?: Profile | null;
 };
+
+export const CLIENT_TIERS: { value: ClientTier; label: string }[] = [
+  { value: "trial", label: "Trial" },
+  { value: "full", label: "Full Client" },
+];
 
 export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [
   { value: "backlog", label: "Backlog" },

@@ -2,37 +2,19 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import {
-  bulkAssignOwner,
-  bulkAssignTemplate,
-  bulkExportCcBlocks,
-} from "@/lib/actions/bulk";
+import { bulkExportCcBlocks } from "@/lib/actions/bulk";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { copyToClipboard } from "@/lib/clipboard";
-import type { MessageTemplate, Profile } from "@/lib/types";
-import { ClipboardCopy, UserCircle2, FileText, X } from "lucide-react";
+import { ClipboardCopy, X } from "lucide-react";
 
 interface BulkActionsBarProps {
   selectedIds: string[];
-  profiles: Profile[];
-  templates: MessageTemplate[];
-  canAssign: boolean;
   canExport: boolean;
   onClear: () => void;
 }
 
 export function BulkActionsBar({
   selectedIds,
-  profiles,
-  templates,
-  canAssign,
   canExport,
   onClear,
 }: BulkActionsBarProps) {
@@ -55,59 +37,6 @@ export function BulkActionsBar({
       <span className="text-sm font-medium text-foreground">
         {selectedIds.length} selected
       </span>
-
-      {canAssign && (
-        <>
-          <Select
-            onValueChange={(ownerId) =>
-              run(async () => {
-                const id = typeof ownerId === "string" ? ownerId : null;
-                await bulkAssignOwner(selectedIds, id || null);
-                toast.success("Owners updated");
-                onClear();
-              })
-            }
-            disabled={isPending}
-          >
-            <SelectTrigger className="h-8 w-[160px] bg-background/80">
-              <UserCircle2 className="mr-1.5 h-3.5 w-3.5" />
-              <SelectValue placeholder="Assign owner" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Unassigned</SelectItem>
-              {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.full_name ?? p.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            onValueChange={(templateId) =>
-              run(async () => {
-                if (typeof templateId !== "string") return;
-                await bulkAssignTemplate(selectedIds, templateId);
-                toast.success("Templates assigned");
-                onClear();
-              })
-            }
-            disabled={isPending}
-          >
-            <SelectTrigger className="h-8 w-[160px] bg-background/80">
-              <FileText className="mr-1.5 h-3.5 w-3.5" />
-              <SelectValue placeholder="Assign template" />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
-      )}
 
       {canExport && (
         <Button

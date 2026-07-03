@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/auth-forms";
 import { Globe } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,7 +15,9 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground">PLNITUDE Client Ops</p>
         </div>
       </div>
-      <LoginForm />
+      <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
+        <LoginForm />
+      </Suspense>
       <Toaster />
     </div>
   );

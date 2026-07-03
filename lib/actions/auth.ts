@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getSiteUrl } from "@/lib/site-url";
 import { canChangeRole } from "@/lib/permissions";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -28,25 +27,18 @@ export async function getCurrentUser() {
     .eq("id", user.id)
     .single();
 
-  if (profile) return profile as Profile;
+  if (profile) {
+    const row = profile as Profile;
+    if (row.is_active === false) return null;
+    return row;
+  }
 
-  // Profile row missing but user is authenticated — use auth metadata as fallback
   if (error?.message?.toLowerCase().includes("schema cache")) {
     return null;
   }
 
-  return {
-    id: user.id,
-    email: user.email ?? "",
-    full_name:
-      (user.user_metadata?.full_name as string) ??
-      user.email?.split("@")[0] ??
-      "User",
-    avatar_url: null,
-    role: (user.user_metadata?.role as Profile["role"]) ?? "operator",
-    created_at: user.created_at,
-    updated_at: user.created_at,
-  } satisfies Profile;
+  // No profile — user was not invited
+  return null;
 }
 
 export async function signIn(email: string, password: string) {
@@ -55,43 +47,66 @@ export async function signIn(email: string, password: string) {
   if (error) {
     if (error.message === "Email not confirmed") {
       throw new Error(
-        "Please confirm your email first — check your inbox for the Supabase confirmation link, then try again.",
+        "Please confirm your email first — check your inbox for the invitation link, then try again.",
       );
     }
     throw new Error(error.message);
   }
+
+  const profile = await getCurrentUser();
+  if (!profile) {
+    await supabase.auth.signOut();
+    throw new Error(
+      "Access is invite-only. Ask an admin to invite you to Meridian.",
+    );
+  }
+
   revalidatePath("/", "layout");
 }
 
-export async function signUp(
-  email: string,
-  password: string,
-  fullName: string,
-) {
-  const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN;
-  if (allowedDomain) {
-    const domain = email.split("@")[1];
-    if (domain !== allowedDomain) {
-      throw new Error(`Signups restricted to @${allowedDomain} emails`);
-    }
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName, role: "operator" },
-      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
-    },
-  });
-  if (error) throw new Error(error.message);
+export async function signUp() {
+  throw new Error(
+    "Open registration is disabled. Ask an admin to invite you to Meridian.",
+  );
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
+}
+
+export async function updateProfile(input: {
+  fullName: string;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const fullName = input.fullName.trim();
+  if (fullName.length < 2) {
+    throw new Error("Name must be at least 2 characters");
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ full_name: fullName })
+    .eq("id", user.id);
+
+  if (profileError) throw new Error(profileError.message);
+
+  const { error: authError } = await supabase.auth.updateUser({
+    data: { full_name: fullName },
+  });
+
+  if (authError) throw new Error(authError.message);
+
+  revalidatePath("/settings");
+  revalidatePath("/", "layout");
+  return { success: true };
 }
 
 export async function updateUserRole(userId: string, role: UserRole) {

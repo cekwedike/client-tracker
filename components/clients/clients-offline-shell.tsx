@@ -3,20 +3,12 @@
 import { useEffect, useState } from "react";
 import { ClientsWorkspace } from "@/components/clients/clients-workspace";
 import { loadClientsCache, saveClientsCache } from "@/lib/clients-cache";
-import type {
-  ClientWithRelations,
-  MessageTemplate,
-  Profile,
-  Task,
-  UserRole,
-} from "@/lib/types";
+import type { ClientWithRelations, Task, UserRole } from "@/lib/types";
 
 interface ClientsOfflineShellProps {
   serverClients: ClientWithRelations[];
   initialClientId?: string | null;
   tasks?: Task[];
-  profiles?: Profile[];
-  templates?: MessageTemplate[];
   userRole?: UserRole;
 }
 
@@ -24,8 +16,6 @@ export function ClientsOfflineShell({
   serverClients,
   initialClientId,
   tasks = [],
-  profiles = [],
-  templates = [],
   userRole = "operator",
 }: ClientsOfflineShellProps) {
   const [cachedClients] = useState<ClientWithRelations[]>(
@@ -53,8 +43,6 @@ export function ClientsOfflineShell({
         clients={displayClients}
         initialClientId={initialClientId}
         tasks={tasks}
-        profiles={profiles}
-        templates={templates}
         userRole={userRole}
       />
     </>

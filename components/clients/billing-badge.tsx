@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { BillingModel, ClientStatus } from "@/lib/types";
+import type { BillingModel, ClientStatus, ClientTier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function BillingBadge({ model }: { model: BillingModel }) {
@@ -28,6 +28,22 @@ export function StatusBadge({ status }: { status: ClientStatus }) {
   return (
     <Badge variant="outline" className={cn("text-xs capitalize", styles[status])}>
       {status}
+    </Badge>
+  );
+}
+
+export function TierBadge({ tier }: { tier: ClientTier }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-xs font-medium",
+        tier === "trial"
+          ? "border-sky-500/30 bg-sky-500/10 text-sky-300"
+          : "border-primary/30 bg-primary/10 text-primary",
+      )}
+    >
+      {tier === "trial" ? "Trial" : "Full"}
     </Badge>
   );
 }

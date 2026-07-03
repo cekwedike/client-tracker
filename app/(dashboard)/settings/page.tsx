@@ -11,7 +11,7 @@ export default async function SettingsPage() {
       <DashboardHero>
         <PageHeader
           title="Settings"
-          description="Display preferences for clocks, client times, and list density across Meridian"
+          description="Profile, display preferences, notifications, and account settings for Meridian"
         />
       </DashboardHero>
       {user && <SettingsPanel user={user} />}

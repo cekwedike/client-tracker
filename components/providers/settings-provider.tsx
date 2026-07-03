@@ -22,6 +22,7 @@ interface SettingsContextValue extends AppSettings {
   setTimeFormat: (format: TimeFormat) => void;
   setDensity: (density: Density) => void;
   setBrowserNotifications: (enabled: boolean) => void;
+  setOperatorTimezone: (timezone: string) => void;
   resetSettings: () => void;
 }
 
@@ -44,16 +45,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     saveSettings(next);
   }, []);
 
-  const setTimeFormat = useCallback(
-    (timeFormat: TimeFormat) => {
-      setSettings((prev) => {
-        const next = { ...prev, timeFormat };
-        saveSettings(next);
-        return next;
-      });
-    },
-    [],
-  );
+  const setTimeFormat = useCallback((timeFormat: TimeFormat) => {
+    setSettings((prev) => {
+      const next = { ...prev, timeFormat };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
 
   const setDensity = useCallback((density: Density) => {
     setSettings((prev) => {
@@ -71,6 +69,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setOperatorTimezone = useCallback((operatorTimezone: string) => {
+    setSettings((prev) => {
+      const next = { ...prev, operatorTimezone };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
   const resetSettings = useCallback(() => persist(DEFAULT_SETTINGS), [persist]);
 
   const value = useMemo(
@@ -80,9 +86,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setTimeFormat,
       setDensity,
       setBrowserNotifications,
+      setOperatorTimezone,
       resetSettings,
     }),
-    [settings, hydrated, setTimeFormat, setDensity, setBrowserNotifications, resetSettings],
+    [
+      settings,
+      hydrated,
+      setTimeFormat,
+      setDensity,
+      setBrowserNotifications,
+      setOperatorTimezone,
+      resetSettings,
+    ],
   );
 
   return (

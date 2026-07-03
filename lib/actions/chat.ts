@@ -166,7 +166,7 @@ export async function getTeamMatrix() {
   const { data: profiles, error: pError } = await supabase
     .from("profiles")
     .select("id, full_name, email, role, avatar_url, created_at, updated_at")
-    .in("role", ["admin", "manager", "operator"])
+    .in("role", ["superadmin", "admin", "manager", "operator"])
     .order("full_name");
 
   if (pError) throw new Error(pError.message);

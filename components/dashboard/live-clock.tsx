@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DateTime } from "luxon";
 import { useSettings } from "@/components/providers/settings-provider";
 import { formatLocalTime, getTimezoneAbbreviation } from "@/lib/timezone";
+import { resolveOperatorTimezone } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 function getUserTimezone() {
@@ -25,8 +26,11 @@ export function LiveClock({
   showTimezone?: boolean;
   className?: string;
 }) {
-  const { timeFormat, hydrated } = useSettings();
-  const tz = timezone ?? getUserTimezone();
+  const settings = useSettings();
+  const { timeFormat, hydrated } = settings;
+  const tz =
+    timezone ??
+    (hydrated ? resolveOperatorTimezone(settings) : getUserTimezone());
   const [now, setNow] = useState<DateTime | null>(() =>
     DateTime.now().setZone(timezone ?? getUserTimezone()),
   );

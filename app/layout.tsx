@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
@@ -17,6 +17,17 @@ export const metadata: Metadata = {
   title: "Meridian — PLNITUDE Client Ops",
   description:
     "The ops layer for outbound agencies. Client tracking, team tasks, and internal comms for PLNITUDE.",
+  applicationName: "Meridian",
+  appleWebApp: {
+    capable: true,
+    title: "Meridian",
+    statusBarStyle: "black-translucent",
+  },
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#C9A227",
 };
 
 export default function RootLayout({

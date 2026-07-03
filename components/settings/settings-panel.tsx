@@ -3,6 +3,8 @@
 import { LiveClock } from "@/components/dashboard/live-clock";
 import { useSettings } from "@/components/providers/settings-provider";
 import { MotionFadeUp } from "@/components/layout/motion";
+import { ProfileSettings } from "@/components/settings/profile-settings";
+import { TimezoneSettings } from "@/components/settings/timezone-settings";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, LayoutGrid, RotateCcw } from "lucide-react";
@@ -10,7 +12,7 @@ import { SpreadsheetRefreshPanel } from "@/components/settings/spreadsheet-refre
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PermissionMatrix } from "@/components/settings/permission-matrix";
 import { ExportClientsPanel } from "@/components/settings/export-clients-panel";
-import { canExportClients } from "@/lib/permissions";
+import { canExportClients, canRefreshSpreadsheet } from "@/lib/permissions";
 import type { Profile } from "@/lib/types";
 
 function ToggleGroup<T extends string>({
@@ -53,6 +55,10 @@ export function SettingsPanel({ user }: { user: Profile }) {
   return (
     <div className="space-y-6">
       <MotionFadeUp>
+        <ProfileSettings user={user} />
+      </MotionFadeUp>
+
+      <MotionFadeUp delay={0.04}>
         <div className="glass-panel gradient-border p-6">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
@@ -63,11 +69,7 @@ export function SettingsPanel({ user }: { user: Profile }) {
                 Live Clock Preview
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Signed in as{" "}
-                <span className="font-medium text-foreground">
-                  {user.full_name ?? user.email}
-                </span>{" "}
-                · updates every second
+                Updates every second using your timezone preference
               </p>
               <div className="mt-4 rounded-xl border border-border/60 bg-[#0D0F12]/50 p-5">
                 <LiveClock size="lg" />
@@ -75,6 +77,10 @@ export function SettingsPanel({ user }: { user: Profile }) {
             </div>
           </div>
         </div>
+      </MotionFadeUp>
+
+      <MotionFadeUp delay={0.06}>
+        <TimezoneSettings />
       </MotionFadeUp>
 
       <MotionFadeUp delay={0.08}>
@@ -97,7 +103,7 @@ export function SettingsPanel({ user }: { user: Profile }) {
         </div>
       </MotionFadeUp>
 
-      <MotionFadeUp delay={0.12}>
+      <MotionFadeUp delay={0.1}>
         <div className="glass-panel gradient-border p-6">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground">
@@ -133,23 +139,23 @@ export function SettingsPanel({ user }: { user: Profile }) {
         </div>
       </MotionFadeUp>
 
-      <MotionFadeUp delay={0.1}>
+      <MotionFadeUp delay={0.12}>
         <NotificationSettings />
       </MotionFadeUp>
 
-      <MotionFadeUp delay={0.11}>
+      <MotionFadeUp delay={0.14}>
         <PermissionMatrix />
       </MotionFadeUp>
 
       {canExportClients(user.role) && (
-        <MotionFadeUp delay={0.12}>
+        <MotionFadeUp delay={0.16}>
           <ExportClientsPanel />
         </MotionFadeUp>
       )}
 
-      {user.role === "admin" && <SpreadsheetRefreshPanel />}
+      {canRefreshSpreadsheet(user.role) && <SpreadsheetRefreshPanel />}
 
-      <MotionFadeUp delay={0.16}>
+      <MotionFadeUp delay={0.18}>
         <div className="flex justify-end">
           <Button
             variant="outline"
@@ -158,7 +164,7 @@ export function SettingsPanel({ user }: { user: Profile }) {
             onClick={resetSettings}
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset to defaults
+            Reset preferences to defaults
           </Button>
         </div>
       </MotionFadeUp>

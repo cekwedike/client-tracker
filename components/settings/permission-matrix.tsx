@@ -2,10 +2,10 @@
 
 import {
   canAssignTasks,
-  canBulkAssign,
   canChangeRole,
   canDeleteTemplate,
   canEditClient,
+  canInviteMembers,
   canManageTemplates,
   canRefreshSpreadsheet,
   canRemoveMember,
@@ -14,7 +14,7 @@ import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
 
-const ROLES: UserRole[] = ["admin", "manager", "operator"];
+const ROLES: UserRole[] = ["superadmin", "admin", "manager", "operator"];
 
 const ACTIONS: {
   label: string;
@@ -24,7 +24,7 @@ const ACTIONS: {
   { label: "Manage templates", check: (r) => canManageTemplates(r) },
   { label: "Delete templates", check: (r) => canDeleteTemplate(r) },
   { label: "Assign tasks", check: (r) => canAssignTasks(r) },
-  { label: "Bulk assign owners/templates", check: (r) => canBulkAssign(r) },
+  { label: "Invite team members", check: (r) => canInviteMembers(r) },
   { label: "Remove team members", check: (r) => canRemoveMember(r) },
   { label: "Change member roles", check: (r) => canChangeRole(r) },
   { label: "Refresh spreadsheet", check: (r) => canRefreshSpreadsheet(r) },

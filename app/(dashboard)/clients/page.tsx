@@ -17,12 +17,11 @@ interface PageProps {
 
 export default async function ClientsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const { clients, tasks, profiles, templates, userRole } =
-    await safeGetClientsPageData({
-      search: params.search,
-      billing_model: params.billing_model,
-      status: params.status,
-    });
+  const { clients, tasks, userRole } = await safeGetClientsPageData({
+    search: params.search,
+    billing_model: params.billing_model,
+    status: params.status,
+  });
 
   return (
     <>
@@ -40,8 +39,6 @@ export default async function ClientsPage({ searchParams }: PageProps) {
           serverClients={clients}
           initialClientId={params.client ?? null}
           tasks={tasks}
-          profiles={profiles}
-          templates={templates}
           userRole={userRole}
         />
       </Suspense>
