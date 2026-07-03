@@ -77,7 +77,7 @@ export function LiveClock({
         {time}
       </p>
       {showTimezone && (
-        <p className="mt-1 text-xs text-subtle">
+        <p className="mt-1 text-xs text-subtle" suppressHydrationWarning>
           {tz.replace(/_/g, " ")} · {abbr}
         </p>
       )}

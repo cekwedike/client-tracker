@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { canChangeRole } from "@/lib/permissions";
 import type { Profile, UserRole } from "@/lib/types";
 
+export type SignInResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 export async function getAuthUser() {
   const supabase = await createClient();
   const {
@@ -25,7 +29,7 @@ export async function getCurrentUser() {
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (profile) {
     const row = profile as Profile;
@@ -41,27 +45,104 @@ export async function getCurrentUser() {
   return null;
 }
 
-export async function signIn(email: string, password: string) {
+async function repairOrphanProfile(user: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}): Promise<Profile | null> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+
+    const { count, error: countError } = await admin
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
+
+    if (countError) return null;
+
+    const isInvited = user.user_metadata?.invited === true;
+    const profileCount = count ?? 0;
+
+    if (profileCount > 0 && !isInvited) {
+      return null;
+    }
+
+    const role: UserRole =
+      profileCount === 0
+        ? "superadmin"
+        : ((user.user_metadata?.role as UserRole | undefined) ?? "operator");
+
+    const { data, error } = await admin
+      .from("profiles")
+      .insert({
+        id: user.id,
+        email: user.email ?? "",
+        full_name:
+          (user.user_metadata?.full_name as string | undefined) ??
+          user.email?.split("@")[0] ??
+          "User",
+        role,
+      })
+      .select("*")
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data as Profile;
+  } catch {
+    return null;
+  }
+}
+
+export async function signIn(
+  email: string,
+  password: string,
+): Promise<SignInResult> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
   if (error) {
     if (error.message === "Email not confirmed") {
-      throw new Error(
-        "Please confirm your email first — check your inbox for the invitation link, then try again.",
-      );
+      return {
+        ok: false,
+        error:
+          "Please confirm your email first — check your inbox for the invitation link, then try again.",
+      };
     }
-    throw new Error(error.message);
+    if (error.message === "Invalid login credentials") {
+      return {
+        ok: false,
+        error: "Incorrect email or password. Please try again.",
+      };
+    }
+    return { ok: false, error: error.message };
   }
 
-  const profile = await getCurrentUser();
+  let profile = await getCurrentUser();
+  if (!profile && authData.user) {
+    profile = await repairOrphanProfile(authData.user);
+  }
+
   if (!profile) {
     await supabase.auth.signOut();
-    throw new Error(
-      "Access is invite-only. Ask an admin to invite you to Meridian.",
-    );
+    return {
+      ok: false,
+      error: "Access is invite-only. Ask an admin to invite you to Meridian.",
+    };
+  }
+
+  if (profile.is_active === false) {
+    await supabase.auth.signOut();
+    return {
+      ok: false,
+      error: "Your account has been deactivated. Contact an admin.",
+    };
   }
 
   revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function signUp() {

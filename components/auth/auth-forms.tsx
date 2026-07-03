@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +21,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
   const form = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -30,14 +31,16 @@ export function LoginForm() {
   const redirectTo = searchParams.get("redirect") ?? "/dashboard";
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    setFormError(null);
     startTransition(async () => {
-      try {
-        await signIn(values.email, values.password);
-        router.push(redirectTo);
-        router.refresh();
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Login failed");
+      const result = await signIn(values.email, values.password);
+      if (!result.ok) {
+        setFormError(result.error);
+        toast.error(result.error);
+        return;
       }
+      router.push(redirectTo);
+      router.refresh();
     });
   };
 
@@ -55,6 +58,11 @@ export function LoginForm() {
         {errorHint === "deactivated" && (
           <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200/90">
             Your account has been deactivated. Contact an admin.
+          </p>
+        )}
+        {formError && (
+          <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200/90">
+            {formError}
           </p>
         )}
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
