@@ -15,7 +15,7 @@ import {
 import { LiveClock } from "@/components/dashboard/live-clock";
 import { ClientStats } from "@/components/clients/client-stats";
 import { ContactWindowAlerts } from "@/components/dashboard/contact-window-alerts";
-import { NeedsAttentionWidget } from "@/components/dashboard/needs-attention-widget";
+import { ActNowWidget } from "@/components/dashboard/act-now-widget";
 import { RecentActivityFeed } from "@/components/dashboard/recent-activity-feed";
 import { MotionFadeUp, MotionStagger } from "@/components/layout/motion";
 import { Button } from "@/components/ui/button";
@@ -289,10 +289,7 @@ export function OpsDashboard({
       <ContactWindowAlerts clients={clients} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <NeedsAttentionWidget
-          clients={clients as ClientWithRelations[]}
-          tasks={tasks}
-        />
+        <ActNowWidget clients={clients} tasks={tasks} />
         <RecentActivityFeed entries={activity} />
       </div>
 
