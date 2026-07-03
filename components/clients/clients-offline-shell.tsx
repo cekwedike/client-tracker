@@ -1,17 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ClientWithRelations } from "@/lib/types";
+import { ClientsWorkspace } from "@/components/clients/clients-workspace";
 import { loadClientsCache, saveClientsCache } from "@/lib/clients-cache";
+import type {
+  ClientWithRelations,
+  MessageTemplate,
+  Profile,
+  Task,
+  UserRole,
+} from "@/lib/types";
 
 interface ClientsOfflineShellProps {
   serverClients: ClientWithRelations[];
-  children: (clients: ClientWithRelations[], isStale: boolean) => React.ReactNode;
+  initialClientId?: string | null;
+  tasks?: Task[];
+  profiles?: Profile[];
+  templates?: MessageTemplate[];
+  userRole?: UserRole;
 }
 
 export function ClientsOfflineShell({
   serverClients,
-  children,
+  initialClientId,
+  tasks = [],
+  profiles = [],
+  templates = [],
+  userRole = "operator",
 }: ClientsOfflineShellProps) {
   const [cachedClients] = useState<ClientWithRelations[]>(
     () => loadClientsCache() ?? [],
@@ -34,7 +49,14 @@ export function ClientsOfflineShell({
           Showing cached clients — updating…
         </div>
       )}
-      {children(displayClients, isStale)}
+      <ClientsWorkspace
+        clients={displayClients}
+        initialClientId={initialClientId}
+        tasks={tasks}
+        profiles={profiles}
+        templates={templates}
+        userRole={userRole}
+      />
     </>
   );
 }

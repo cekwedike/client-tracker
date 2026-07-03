@@ -4,8 +4,6 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 
-const isDev = process.env.NODE_ENV === "development";
-
 export default function ClientsError({
   error,
   reset,
@@ -22,9 +20,8 @@ export default function ClientsError({
   }, [error]);
 
   const displayMessage =
-    isDev && error.message
-      ? error.message
-      : "Something went wrong while loading this page. Try again, or check that your database migrations are up to date.";
+    error.message?.trim() ||
+    "Something went wrong while loading this page. Try again, or check that your database migrations are up to date.";
 
   return (
     <div className="mx-auto max-w-lg rounded-xl border border-destructive/30 bg-destructive/5 p-6">

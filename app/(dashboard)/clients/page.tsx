@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ClientsPageHeader } from "@/components/clients/clients-page-header";
 import { ClientsOfflineShell } from "@/components/clients/clients-offline-shell";
-import { ClientsWorkspace } from "@/components/clients/clients-workspace";
 import { QuickAddClientDialog } from "@/components/clients/quick-add-dialog";
 import { safeGetClientsPageData } from "@/lib/actions/clients-page-data";
 import { Button } from "@/components/ui/button";
@@ -37,18 +36,14 @@ export default async function ClientsPage({ searchParams }: PageProps) {
       </ClientsPageHeader>
 
       <Suspense fallback={<div className="mb-6 text-sm text-muted-foreground">Loading filters...</div>}>
-        <ClientsOfflineShell serverClients={clients}>
-          {(displayClients) => (
-            <ClientsWorkspace
-              clients={displayClients}
-              initialClientId={params.client ?? null}
-              tasks={tasks}
-              profiles={profiles}
-              templates={templates}
-              userRole={userRole}
-            />
-          )}
-        </ClientsOfflineShell>
+        <ClientsOfflineShell
+          serverClients={clients}
+          initialClientId={params.client ?? null}
+          tasks={tasks}
+          profiles={profiles}
+          templates={templates}
+          userRole={userRole}
+        />
       </Suspense>
     </>
   );

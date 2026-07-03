@@ -36,7 +36,8 @@ export async function getMessageTemplates(): Promise<MessageTemplateWithClients[
     ) {
       return [];
     }
-    throw new Error(error.message);
+    console.error("[getMessageTemplates]", error.message);
+    return [];
   }
   return (data ?? []) as MessageTemplateWithClients[];
 }
