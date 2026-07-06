@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { setPassword, signIn } from "@/lib/actions/auth";
@@ -102,7 +103,7 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <Label>Password</Label>
-            <Input type="password" {...form.register("password")} />
+            <PasswordInput autoComplete="current-password" {...form.register("password")} />
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Signing in..." : "Sign In"}
@@ -210,9 +211,8 @@ export function SetPasswordForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="new-password">Password</Label>
-            <Input
+            <PasswordInput
               id="new-password"
-              type="password"
               autoComplete="new-password"
               {...form.register("password")}
             />
@@ -224,9 +224,8 @@ export function SetPasswordForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Confirm password</Label>
-            <Input
+            <PasswordInput
               id="confirm-password"
-              type="password"
               autoComplete="new-password"
               {...form.register("confirmPassword")}
             />
