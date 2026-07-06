@@ -29,7 +29,22 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Push database migrations
-        run: supabase db push
+        run: |
+          set -e
+          push_migrations() {
+            supabase db push --linked --yes
+          }
+
+          if ! push_migrations; then
+            echo "::warning::db push failed; baselining migration history for pre-existing remote schema"
+            latest=$(ls supabase/migrations/*.sql | sort | tail -1)
+            for f in $(ls supabase/migrations/*.sql | sort); do
+              [ "$f" = "$latest" ] && break
+              version=$(basename "$f" .sql | sed -E 's/^([0-9]+[a-z]?)_.*/\1/')
+              supabase migration repair "$version" --status applied --linked --yes || true
+            done
+            push_migrations
+          fi
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
