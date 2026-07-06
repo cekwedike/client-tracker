@@ -16,15 +16,18 @@ function isConfigured(): boolean {
 async function hasAuthorizedProfile(
   supabase: ReturnType<typeof createServerClient>,
   userId: string,
-): Promise<boolean> {
+): Promise<{ authorized: boolean; mustChangePassword: boolean }> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("is_active")
+    .select("is_active, must_change_password")
     .eq("id", userId)
     .maybeSingle();
 
-  if (error || !data) return false;
-  return data.is_active !== false;
+  if (error || !data) return { authorized: false, mustChangePassword: false };
+  return {
+    authorized: data.is_active !== false,
+    mustChangePassword: data.must_change_password === true,
+  };
 }
 
 export async function updateSession(request: NextRequest) {
@@ -107,19 +110,36 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/settings");
 
   if (user && isDashboardRoute) {
-    const authorized = await hasAuthorizedProfile(supabase, user.id);
+    const { authorized, mustChangePassword } = await hasAuthorizedProfile(
+      supabase,
+      user.id,
+    );
     if (!authorized) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
       redirectUrl.searchParams.set("error", "invite_only");
       return NextResponse.redirect(redirectUrl);
     }
+    if (mustChangePassword && !pathname.startsWith("/auth/set-password")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/auth/set-password";
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   if (user && (pathname === "/" || pathname.startsWith("/login"))) {
-    const authorized = await hasAuthorizedProfile(supabase, user.id);
+    const { authorized, mustChangePassword } = await hasAuthorizedProfile(
+      supabase,
+      user.id,
+    );
     if (!authorized) {
       return supabaseResponse;
+    }
+
+    if (mustChangePassword) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/auth/set-password";
+      return NextResponse.redirect(redirectUrl);
     }
 
     const dbReady = await checkDatabaseReadyInMiddleware(

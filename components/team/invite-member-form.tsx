@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Link2, Mail, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
+import { inviteTeamMember } from "@/lib/actions/team";
 import {
-  generateTeamMemberInviteLink,
-  inviteTeamMember,
-} from "@/lib/actions/team";
+  DEFAULT_PASSWORD_HINT,
+  generateDefaultPassword,
+} from "@/lib/default-password";
 import { getInviteAssignableRoles } from "@/lib/permissions";
 import type { UserRole } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -30,14 +31,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
   viewer: "Viewer",
 };
 
-const INVITE_EMAIL_HINT =
-  "If they don't see it, check spam or configure custom SMTP in Supabase Auth settings.";
-
 function inviteToastError(error: unknown) {
   const message =
     typeof error === "string" && error.trim() && error !== "{}"
       ? error
-      : "Could not send invite. Try again.";
+      : "Could not add teammate. Try again.";
   toast.error(message);
 }
 
@@ -45,10 +43,10 @@ interface InviteMemberFormProps {
   currentUserRole: UserRole;
 }
 
-type InviteBanner = {
+type AddedMemberBanner = {
   email: string;
-  inviteLink?: string;
-  emailNotSent?: boolean;
+  fullName: string;
+  defaultPassword: string;
 };
 
 export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
@@ -61,80 +59,38 @@ export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>(defaultRole);
-  const [banner, setBanner] = useState<InviteBanner | null>(null);
+  const [banner, setBanner] = useState<AddedMemberBanner | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [isGeneratingLink, startGenerateLink] = useTransition();
 
-  const applyInviteResult = (
-    sentEmail: string,
-    result: Extract<Awaited<ReturnType<typeof inviteTeamMember>>, { ok: true }>,
-  ) => {
-    if (result.emailNotSent && result.inviteLink) {
-      setBanner({
-        email: sentEmail,
-        inviteLink: result.inviteLink,
-        emailNotSent: true,
-      });
-      toast.success(`Invite link created for ${sentEmail}`, {
-        description:
-          "Email could not be sent (rate limit or SMTP). Copy the link below and share it manually.",
-      });
-      return;
-    }
-
-    setBanner({ email: sentEmail });
-    toast.success(`Invite sent to ${sentEmail}`, {
-      description: INVITE_EMAIL_HINT,
-    });
-  };
+  const passwordPreview = useMemo(() => {
+    const name = fullName.trim() || email.trim().split("@")[0] || "Teammate";
+    return generateDefaultPassword(name);
+  }, [fullName, email]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const sentEmail = email.trim();
-    startTransition(async () => {
-      const result = await inviteTeamMember(
-        sentEmail,
-        fullName.trim() || undefined,
-        role,
-      );
-      if (!result.ok) {
-        inviteToastError(result.error);
-        return;
-      }
-      applyInviteResult(sentEmail, result);
-      setEmail("");
-      setFullName("");
-      setRole(defaultRole);
-      router.refresh();
-    });
-  };
-
-  const handleGenerateLink = () => {
-    const sentEmail = email.trim();
-    if (!sentEmail) {
-      toast.error("Enter an email address first.");
+    const name = fullName.trim();
+    if (!name) {
+      toast.error("Full name is required to generate the default password.");
       return;
     }
 
-    startGenerateLink(async () => {
-      const result = await generateTeamMemberInviteLink(
-        sentEmail,
-        fullName.trim() || undefined,
-        role,
-      );
+    startTransition(async () => {
+      const result = await inviteTeamMember(sentEmail, name, role);
       if (!result.ok) {
         inviteToastError(result.error);
         return;
       }
-      setBanner({
-        email: sentEmail,
-        inviteLink: result.inviteLink,
-        emailNotSent: true,
+
+      const defaultPassword = result.defaultPassword ?? passwordPreview;
+      setBanner({ email: sentEmail, fullName: name, defaultPassword });
+      toast.success(`${name} added to the team`, {
+        description: "Share their login email and default password below.",
       });
-      toast.success(`Invite link ready for ${sentEmail}`, {
-        description:
-          "No email was sent. Copy the link below and share it with the invitee.",
-      });
+      setEmail("");
+      setFullName("");
+      setRole(defaultRole);
       router.refresh();
     });
   };
@@ -143,13 +99,17 @@ export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
     <div className="glass-panel gradient-border p-4">
       <div className="mb-3 flex items-center gap-2">
         <UserPlus className="h-4 w-4 text-primary" />
-        <p className="text-sm font-semibold text-foreground">Invite team member</p>
+        <p className="text-sm font-semibold text-foreground">Add team member</p>
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
-        Send an invite email. The recipient can set their password and join the
-        team as {ROLE_LABELS[role]}. Sign-up is invite-only — disabling public
-        sign-up in Supabase does not block admin invites.
+        Creates an account with a default password. They sign in at the login page
+        and are prompted to choose a new password on first login.
       </p>
+      <ul className="mb-4 list-inside list-disc space-y-1 text-xs text-muted-foreground">
+        <li>First 5 letters of their name (spaces removed)</li>
+        <li>Then <span className="font-mono text-foreground">@</span> and the current year</li>
+        <li>First letter of the password is uppercase</li>
+      </ul>
       <form
         onSubmit={handleSubmit}
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_140px_auto]"
@@ -166,9 +126,10 @@ export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="invite-name">Full name (optional)</Label>
+          <Label htmlFor="invite-name">Full name</Label>
           <Input
             id="invite-name"
+            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Alex Operator"
@@ -190,68 +151,59 @@ export function InviteMemberForm({ currentUserRole }: InviteMemberFormProps) {
           </Select>
         </div>
         <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-1">
-          <Button type="submit" disabled={isPending || isGeneratingLink} className="gap-2">
-            <Mail className="h-4 w-4" />
-            {isPending ? "Sending…" : "Send invite"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isPending || isGeneratingLink || !email.trim()}
-            className="gap-2"
-            onClick={handleGenerateLink}
-          >
-            <Link2 className="h-4 w-4" />
-            {isGeneratingLink ? "Generating…" : "Copy link instead"}
+          <Button type="submit" disabled={isPending} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            {isPending ? "Adding…" : "Add teammate"}
           </Button>
         </div>
       </form>
 
+      <div className="mt-4 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">Default password preview</p>
+        <p className="mt-1">{DEFAULT_PASSWORD_HINT}</p>
+        <p className="mt-2 font-mono text-sm text-foreground">{passwordPreview}</p>
+      </div>
+
       {banner && (
         <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-          {banner.emailNotSent ? (
-            <p>
-              Share this invite link with <strong className="text-foreground">{banner.email}</strong>{" "}
-              directly (no email was sent):
-            </p>
-          ) : (
-            <p>
-              Invite email sent to <strong className="text-foreground">{banner.email}</strong>.{" "}
-              {INVITE_EMAIL_HINT}
-            </p>
-          )}
-
-          {banner.inviteLink ? (
-            <div className="mt-2 flex items-center gap-2">
+          <p>
+            <strong className="text-foreground">{banner.fullName}</strong> can sign in with:
+          </p>
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2">
               <Input
                 readOnly
-                value={banner.inviteLink}
-                className="h-8 font-mono text-[11px]"
-                aria-label="Invite link"
+                value={banner.email}
+                className="h-8 text-[11px]"
+                aria-label="Login email"
               />
               <CopyButton
-                value={banner.inviteLink}
+                value={banner.email}
                 showToast
-                toastMessage="Invite link copied"
+                toastMessage="Email copied"
                 size="sm"
                 variant="outline"
               />
             </div>
-          ) : (
-            <div className="mt-2">
-              <Button
-                type="button"
-                variant="outline"
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={banner.defaultPassword}
+                className="h-8 font-mono text-[11px]"
+                aria-label="Default password"
+              />
+              <CopyButton
+                value={banner.defaultPassword}
+                showToast
+                toastMessage="Password copied"
                 size="sm"
-                className="gap-2"
-                disabled={isGeneratingLink}
-                onClick={handleGenerateLink}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                {isGeneratingLink ? "Generating…" : "Generate invite link to copy"}
-              </Button>
+                variant="outline"
+              />
             </div>
-          )}
+          </div>
+          <p className="mt-2">
+            They must change this password after their first sign-in.
+          </p>
         </div>
       )}
     </div>

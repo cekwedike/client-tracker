@@ -6,7 +6,7 @@ import { canChangeRole } from "@/lib/permissions";
 import type { Profile, UserRole } from "@/lib/types";
 
 export type SignInResult =
-  | { ok: true }
+  | { ok: true; mustChangePassword?: boolean }
   | { ok: false; error: string };
 
 export async function getAuthUser() {
@@ -142,7 +142,7 @@ export async function signIn(
   }
 
   revalidatePath("/", "layout");
-  return { ok: true };
+  return { ok: true, mustChangePassword: profile.must_change_password === true };
 }
 
 export async function signUp() {
@@ -173,6 +173,15 @@ export async function setPassword(password: string): Promise<SignInResult> {
   const { error } = await supabase.auth.updateUser({ password: trimmed });
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ must_change_password: false })
+    .eq("id", user.id);
+
+  if (profileError && !profileError.message?.toLowerCase().includes("schema cache")) {
+    console.error("[setPassword] could not clear must_change_password", profileError.message);
   }
 
   revalidatePath("/", "layout");

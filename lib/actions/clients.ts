@@ -97,6 +97,17 @@ export async function getClientOptions() {
   return data as Pick<ClientWithRelations, "id" | "company_name">[];
 }
 
+export async function getClientsForTemplatePreview() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, company_name, contacts(*)")
+    .order("company_name");
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Pick<ClientWithRelations, "id" | "company_name" | "contacts">[];
+}
+
 const CLIENTS_WITH_RELATIONS_SELECT = `
   *,
   contacts(*),

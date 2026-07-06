@@ -16,6 +16,7 @@ export interface Profile {
   avatar_url: string | null;
   role: UserRole;
   is_active?: boolean;
+  must_change_password?: boolean;
   created_at: string;
   updated_at: string;
 }

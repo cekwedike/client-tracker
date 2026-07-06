@@ -64,7 +64,7 @@ export function LoginForm() {
         toast.error(result.error);
         return;
       }
-      router.push(redirectTo);
+      router.push(result.mustChangePassword ? "/auth/set-password" : redirectTo);
       router.refresh();
     });
   };
@@ -162,7 +162,7 @@ export function SetPasswordForm() {
         toast.error(result.error);
         return;
       }
-      toast.success("Password set. Welcome to Meridian.");
+      toast.success("Password updated. Welcome to Meridian.");
       router.push("/dashboard");
       router.refresh();
     });
@@ -182,12 +182,11 @@ export function SetPasswordForm() {
     return (
       <Card className="w-full max-w-md border-border/50">
         <CardHeader>
-          <CardTitle>Set up your account</CardTitle>
+          <CardTitle>Change your password</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200/90">
-            Open the invitation link from your email to set your password. If the
-            link expired, ask your admin for a new invite.
+            Sign in first, then you will be prompted to set a new password.
           </p>
         </CardContent>
       </Card>
@@ -197,11 +196,11 @@ export function SetPasswordForm() {
   return (
     <Card className="w-full max-w-md border-border/50">
       <CardHeader>
-        <CardTitle>Set up your account</CardTitle>
+        <CardTitle>Change your password</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="mb-4 text-sm text-muted-foreground">
-          Create a password to finish accepting your Meridian invitation.
+          You signed in with a temporary password. Choose a new password to continue.
         </p>
         {formError && (
           <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200/90">
@@ -236,7 +235,7 @@ export function SetPasswordForm() {
             )}
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Saving…" : "Set password & continue"}
+            {isPending ? "Saving…" : "Update password & continue"}
           </Button>
         </form>
       </CardContent>

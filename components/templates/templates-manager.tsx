@@ -8,7 +8,7 @@ import {
   deleteMessageTemplate,
   updateMessageTemplate,
 } from "@/lib/actions/templates";
-import { TEMPLATE_PLACEHOLDERS } from "@/lib/template-placeholders";
+import { TEMPLATE_PLACEHOLDERS, getTemplateCcEmail, renderTemplateBody, type TemplatePreviewClient } from "@/lib/template-placeholders";
 import {
   canDeleteTemplate,
   canManageTemplates,
@@ -33,7 +33,7 @@ import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 
 interface TemplatesManagerProps {
   templates: MessageTemplateWithClients[];
-  clients: { id: string; company_name: string }[];
+  clients: TemplatePreviewClient[];
   userRole: UserRole;
 }
 
@@ -49,7 +49,7 @@ function TemplateForm({
   isPending,
 }: {
   initial?: { name: string; body: string; client_ids: string[] };
-  clients: { id: string; company_name: string }[];
+  clients: TemplatePreviewClient[];
   onSubmit: (values: { name: string; body: string; client_ids: string[] }) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -60,6 +60,18 @@ function TemplateForm({
   );
   const [clientIds, setClientIds] = useState<string[]>(initial?.client_ids ?? []);
   const [clientSearch, setClientSearch] = useState("");
+
+  const previewClient = useMemo(() => {
+    if (clientIds.length !== 1) return null;
+    return clients.find((c) => c.id === clientIds[0]) ?? null;
+  }, [clientIds, clients]);
+
+  const previewBody = useMemo(() => {
+    if (!previewClient) return null;
+    return renderTemplateBody(body, previewClient);
+  }, [body, previewClient]);
+
+  const previewCcEmail = previewClient ? getTemplateCcEmail(previewClient) : null;
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -111,6 +123,21 @@ function TemplateForm({
           ))}
         </div>
       </div>
+      {previewBody && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            Preview for {previewClient?.company_name}
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            {previewBody}
+          </p>
+          {previewCcEmail && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              CC email: <span className="font-mono text-foreground">{previewCcEmail}</span>
+            </p>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <Label>Assign to clients ({clientIds.length})</Label>
         <Input
@@ -245,6 +272,16 @@ export function TemplatesManager({
         <div className="grid gap-4 lg:grid-cols-2">
           {templates.map((template) => {
             const assigned = template.client_templates ?? [];
+            const singleClientId =
+              assigned.length === 1 ? assigned[0].client_id : null;
+            const singleClient = singleClientId
+              ? clients.find((c) => c.id === singleClientId)
+              : null;
+            const displayBody = singleClient
+              ? renderTemplateBody(template.body, singleClient)
+              : template.body;
+            const ccEmail = singleClient ? getTemplateCcEmail(singleClient) : null;
+
             return (
               <div
                 key={template.id}
@@ -254,12 +291,22 @@ export function TemplatesManager({
                   <div>
                     <h3 className="font-semibold text-foreground">{template.name}</h3>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                      {template.body}
+                      {displayBody}
                     </p>
+                    {singleClient && ccEmail && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        CC email: <span className="font-mono text-foreground">{ccEmail}</span>
+                      </p>
+                    )}
+                    {assigned.length > 1 && (
+                      <p className="mt-2 text-[10px] text-subtle">
+                        Placeholders shown — assigned to {assigned.length} clients
+                      </p>
+                    )}
                   </div>
                   <CopyButton
-                    value={template.body}
-                    label="Copy template body"
+                    value={displayBody}
+                    label="Copy template"
                     size="sm"
                     buttonText="Copy"
                     showToast

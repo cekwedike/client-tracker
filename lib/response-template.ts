@@ -2,7 +2,7 @@ import type { ClientWithRelations, Contact } from "./types";
 
 const TEMPLATE_PREFIX = "Response template:";
 
-export function getDefaultCcContact(client: ClientWithRelations): Contact | undefined {
+export function getDefaultCcContact(client: { contacts: Contact[] }): Contact | undefined {
   return (
     client.contacts.find((c) => c.is_default_cc) ??
     client.contacts.find((c) => c.role === "cc_manager") ??

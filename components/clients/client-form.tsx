@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -43,7 +43,7 @@ interface ClientFormProps {
 
 export function ClientForm({ client, profiles = [] }: ClientFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
   const isEdit = Boolean(client);
 
   const form = useForm<ClientFormValues>({
@@ -131,44 +131,47 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
   const watched = form.watch();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      startTransition(async () => {
-        try {
-          const issues = await validateClientSave(
-            watched as ClientFormValues,
-            client?.id,
-          );
-          setInlineIssues(issues);
-        } catch {
-          setInlineIssues([]);
-        }
-      });
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const issues = await validateClientSave(
+          watched as ClientFormValues,
+          client?.id,
+        );
+        if (!cancelled) setInlineIssues(issues);
+      } catch {
+        if (!cancelled) setInlineIssues([]);
+      }
     }, 400);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [watched, client?.id]);
 
-  const onSubmit = (values: ClientFormValues) => {
+  const onSubmit = async (values: ClientFormValues) => {
     const blocking = inlineIssues.filter((i) => i.severity === "error");
     if (blocking.length > 0) {
       toast.error(blocking[0].message);
       return;
     }
 
-    startTransition(async () => {
-      try {
-        if (isEdit && client) {
-          await updateClient(client.id, values);
-          toast.success("Client updated");
-          router.push(`/clients/${client.id}`);
-        } else {
-          const created = await createClientRecord(values);
-          toast.success("Client created");
-          router.push(`/clients/${created.id}`);
-        }
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+    setIsSaving(true);
+    try {
+      if (isEdit && client) {
+        await updateClient(client.id, values);
+        toast.success("Client updated");
+        router.push(`/clients/${client.id}`);
+      } else {
+        const created = await createClientRecord(values);
+        toast.success("Client created");
+        router.push(`/clients/${created.id}`);
       }
-    });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -481,8 +484,8 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : isEdit ? "Update Client" : "Create Client"}
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving..." : isEdit ? "Update Client" : "Create Client"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

@@ -1,13 +1,13 @@
 import { PageHeader } from "@/components/layout/sidebar";
 import { TemplatesManager } from "@/components/templates/templates-manager";
-import { getClientOptions } from "@/lib/actions/clients";
+import { getClientsForTemplatePreview } from "@/lib/actions/clients";
 import { getCurrentUser } from "@/lib/actions/auth";
 import { getMessageTemplates } from "@/lib/actions/templates";
 
 export default async function TemplatesPage() {
   const [templates, clients, user] = await Promise.all([
     getMessageTemplates(),
-    getClientOptions(),
+    getClientsForTemplatePreview(),
     getCurrentUser(),
   ]);
 

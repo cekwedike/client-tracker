@@ -1,6 +1,11 @@
 import { getDefaultCcContact } from "@/lib/response-template";
 import type { ClientWithRelations, Contact } from "@/lib/types";
 
+export type TemplatePreviewClient = Pick<
+  ClientWithRelations,
+  "id" | "company_name" | "contacts"
+>;
+
 export const TEMPLATE_PLACEHOLDERS = [
   { key: "cc_name", label: "CC name" },
   { key: "company", label: "Company" },
@@ -10,7 +15,7 @@ export const TEMPLATE_PLACEHOLDERS = [
 
 export function renderTemplateBody(
   body: string,
-  client: ClientWithRelations,
+  client: TemplatePreviewClient | ClientWithRelations,
   ccContact?: Contact,
 ): string {
   const contact = ccContact ?? getDefaultCcContact(client);
@@ -27,4 +32,12 @@ export function renderTemplateBody(
   };
 
   return body.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? `{{${key}}}`);
+}
+
+export function getTemplateCcEmail(
+  client: TemplatePreviewClient | ClientWithRelations,
+): string | null {
+  const contact = getDefaultCcContact(client);
+  const email = contact?.email?.trim();
+  return email || null;
 }

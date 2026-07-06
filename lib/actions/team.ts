@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { generateDefaultPassword } from "@/lib/default-password";
 import { getCurrentUser } from "@/lib/actions/auth";
 import {
   canAssignRoleOnInvite,
@@ -239,7 +240,7 @@ export async function reactivateTeamMember(userId: string) {
 }
 
 export type InviteTeamMemberResult =
-  | { ok: true; userId?: string; inviteLink?: string; emailNotSent?: boolean }
+  | { ok: true; userId?: string; defaultPassword?: string }
   | { ok: false; error: string };
 
 type InviteAuthError = {
@@ -424,7 +425,7 @@ function isEmailDeliveryError(error: InviteAuthError): boolean {
   );
 }
 
-/** Invite by email via admin client (service role, server-only). */
+/** Create a teammate with a default password (admin shares credentials manually). */
 export async function inviteTeamMember(
   email: string,
   fullName?: string,
@@ -438,7 +439,7 @@ export async function inviteTeamMember(
 
     const currentUser = await getCurrentUser();
     if (!currentUser || !canInviteMembers(currentUser.role)) {
-      return { ok: false, error: "Only admins can invite team members." };
+      return { ok: false, error: "Only admins can add team members." };
     }
 
     if (!canAssignRoleOnInvite(currentUser.role, role)) {
@@ -448,9 +449,6 @@ export async function inviteTeamMember(
     const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
       "@/lib/supabase/admin"
     );
-    const { getSiteUrl } = await import("@/lib/site-url");
-    const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     let admin;
     try {
@@ -459,118 +457,50 @@ export async function inviteTeamMember(
       return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
     }
 
-    const redirectTo = `${getSiteUrl()}/auth/callback?next=/auth/set-password`;
+    const displayName = fullName?.trim() || trimmedEmail.split("@")[0];
+    const defaultPassword = generateDefaultPassword(displayName);
     const metadata = {
-      full_name: fullName?.trim() || trimmedEmail.split("@")[0],
+      full_name: displayName,
       role,
       invited: true as const,
+      must_change_password: true as const,
     };
 
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(trimmedEmail, {
-      data: metadata,
-      redirectTo,
+    const { data, error } = await admin.auth.admin.createUser({
+      email: trimmedEmail,
+      password: defaultPassword,
+      email_confirm: true,
+      user_metadata: metadata,
     });
 
     if (error) {
-      const resolvedError =
-        adminUrl && serviceKey
-          ? await resolveInviteAuthError(
-              adminUrl,
-              serviceKey,
-              trimmedEmail,
-              redirectTo,
-              metadata,
-              error,
-            )
-          : error;
-      logInviteError("inviteUserByEmail failed", trimmedEmail, resolvedError);
-
-      if (isEmailDeliveryError(resolvedError)) {
-        const fallback = await generateInviteLink(
-          admin,
-          trimmedEmail,
-          redirectTo,
-          metadata,
-        );
-        if (fallback.inviteLink) {
-          revalidatePath("/team");
-          return {
-            ok: true,
-            userId: fallback.userId,
-            inviteLink: fallback.inviteLink,
-            emailNotSent: true,
-          };
-        }
-      }
-
-      return { ok: false, error: mapInviteError(resolvedError) };
+      logInviteError("createUser failed", trimmedEmail, error);
+      return { ok: false, error: mapInviteError(error) };
     }
 
-    revalidatePath("/team");
-    return { ok: true, userId: data.user?.id };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not send invite. Try again.";
-    return { ok: false, error: mapInviteError({ message, status: 500 }) };
-  }
-}
-
-/** Generate a shareable invite link without sending email (invalidates any prior invite link). */
-export async function generateTeamMemberInviteLink(
-  email: string,
-  fullName?: string,
-  role: UserRole = "operator",
-): Promise<InviteTeamMemberResult> {
-  try {
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      return { ok: false, error: "Please enter a valid email address." };
-    }
-
-    const currentUser = await getCurrentUser();
-    if (!currentUser || !canInviteMembers(currentUser.role)) {
-      return { ok: false, error: "Only admins can invite team members." };
-    }
-
-    if (!canAssignRoleOnInvite(currentUser.role, role)) {
-      return { ok: false, error: "You cannot assign that role." };
-    }
-
-    const { ADMIN_CLIENT_UNAVAILABLE_MESSAGE, createAdminClient } = await import(
-      "@/lib/supabase/admin"
-    );
-    const { getSiteUrl } = await import("@/lib/site-url");
-
-    let admin;
-    try {
-      admin = createAdminClient();
-    } catch {
-      return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
-    }
-
-    const redirectTo = `${getSiteUrl()}/auth/callback?next=/auth/set-password`;
-    const metadata = {
-      full_name: fullName?.trim() || trimmedEmail.split("@")[0],
-      role,
-      invited: true as const,
-    };
-
-    const link = await generateInviteLink(admin, trimmedEmail, redirectTo, metadata);
-    if (!link.inviteLink) {
-      return {
-        ok: false,
-        error: mapInviteError({ message: "Could not generate invite link." }),
-      };
+    if (data.user?.id) {
+      await admin
+        .from("profiles")
+        .update({ must_change_password: true })
+        .eq("id", data.user.id);
     }
 
     revalidatePath("/team");
     return {
       ok: true,
-      userId: link.userId,
-      inviteLink: link.inviteLink,
-      emailNotSent: true,
+      userId: data.user?.id,
+      defaultPassword,
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not generate invite link.";
-    return { ok: false, error: mapInviteError({ message }) };
+    const message = err instanceof Error ? err.message : "Could not add teammate. Try again.";
+    return { ok: false, error: mapInviteError({ message, status: 500 }) };
   }
+}
+
+/** @deprecated Invite links replaced by default-password onboarding. */
+export async function generateTeamMemberInviteLink(): Promise<InviteTeamMemberResult> {
+  return {
+    ok: false,
+    error: "Invite links are no longer used. Add the teammate to get their default password.",
+  };
 }
