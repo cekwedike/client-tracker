@@ -88,7 +88,8 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/callback");
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/auth/set-password");
 
   if (!user && !isAuthRoute && pathname !== "/" && !pathname.startsWith("/setup") && pathname !== "/offline") {
     const redirectUrl = request.nextUrl.clone();

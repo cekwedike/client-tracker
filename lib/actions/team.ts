@@ -459,7 +459,7 @@ export async function inviteTeamMember(
       return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
     }
 
-    const redirectTo = `${getSiteUrl()}/auth/callback`;
+    const redirectTo = `${getSiteUrl()}/auth/callback?next=/auth/set-password`;
     const metadata = {
       full_name: fullName?.trim() || trimmedEmail.split("@")[0],
       role,
@@ -547,7 +547,7 @@ export async function generateTeamMemberInviteLink(
       return { ok: false, error: ADMIN_CLIENT_UNAVAILABLE_MESSAGE };
     }
 
-    const redirectTo = `${getSiteUrl()}/auth/callback`;
+    const redirectTo = `${getSiteUrl()}/auth/callback?next=/auth/set-password`;
     const metadata = {
       full_name: fullName?.trim() || trimmedEmail.split("@")[0],
       role,

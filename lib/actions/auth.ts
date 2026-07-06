@@ -151,6 +151,34 @@ export async function signUp() {
   );
 }
 
+export async function setPassword(password: string): Promise<SignInResult> {
+  const trimmed = password.trim();
+  if (trimmed.length < 8) {
+    return { ok: false, error: "Password must be at least 8 characters." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      error:
+        "Your session expired. Open the invitation link from your email again.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: trimmed });
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
