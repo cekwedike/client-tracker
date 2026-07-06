@@ -76,7 +76,7 @@ export function ClientFilters({
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <form onSubmit={handleSearch} className="relative min-w-[200px] flex-1 max-w-md">
+        <form onSubmit={handleSearch} className="relative w-full min-w-0 flex-1 sm:min-w-[200px] sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={searchInputRef}
@@ -90,7 +90,7 @@ export function ClientFilters({
           value={searchParams.get("billing_model") ?? ""}
           onValueChange={(v) => updateFilter("billing_model", v ?? "")}
         >
-          <SelectTrigger className="w-[140px] border-border/80 bg-background/50 text-foreground">
+          <SelectTrigger className="w-full border-border/80 bg-background/50 text-foreground sm:w-[140px]">
             <SelectValue placeholder="Deal type" />
           </SelectTrigger>
           <SelectContent>
@@ -103,7 +103,7 @@ export function ClientFilters({
           value={searchParams.get("status") ?? ""}
           onValueChange={(v) => updateFilter("status", v ?? "")}
         >
-          <SelectTrigger className="w-[140px] border-border/80 bg-background/50 text-foreground">
+          <SelectTrigger className="w-full border-border/80 bg-background/50 text-foreground sm:w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>

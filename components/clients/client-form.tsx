@@ -33,6 +33,7 @@ import {
   type Profile,
 } from "@/lib/types";
 import { getDefaultBusinessHours } from "@/lib/timezone";
+import { profileSelectLabel } from "@/lib/select-labels";
 import { BusinessHoursEditor } from "@/components/clients/business-hours-editor";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -267,7 +268,11 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
               value={form.watch("handled_by_id") ?? ""}
               onValueChange={(v) => form.setValue("handled_by_id", v || null)}
             >
-              <SelectTrigger><SelectValue placeholder="Auto-assign by tier" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Auto-assign by tier">
+                  {profileSelectLabel(profiles, form.watch("handled_by_id"), "Auto-assign by tier")}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Auto-assign by tier</SelectItem>
                 {profiles.map((p) => (
@@ -282,7 +287,11 @@ export function ClientForm({ client, profiles = [] }: ClientFormProps) {
               value={form.watch("primary_owner_id") ?? ""}
               onValueChange={(v) => form.setValue("primary_owner_id", v || null)}
             >
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Unassigned">
+                  {profileSelectLabel(profiles, form.watch("primary_owner_id"))}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Unassigned</SelectItem>
                 {profiles.map((p) => (

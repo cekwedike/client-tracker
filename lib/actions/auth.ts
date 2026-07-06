@@ -37,7 +37,7 @@ export async function getCurrentUser() {
     return row;
   }
 
-  if (error?.message?.toLowerCase().includes("schema cache")) {
+  if (error?.message?.toLowerCase()?.includes("schema cache")) {
     return null;
   }
 
@@ -180,7 +180,10 @@ export async function setPassword(password: string): Promise<SignInResult> {
     .update({ must_change_password: false })
     .eq("id", user.id);
 
-  if (profileError && !profileError.message?.toLowerCase().includes("schema cache")) {
+  const isSchemaCacheError =
+    profileError?.message?.toLowerCase()?.includes("schema cache") ?? false;
+
+  if (profileError && !isSchemaCacheError) {
     console.error("[setPassword] could not clear must_change_password", profileError.message);
   }
 

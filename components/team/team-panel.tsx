@@ -280,6 +280,7 @@ export function TeamPanel({
       )}
 
       <div className="glass-panel gradient-border overflow-hidden">
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -426,6 +427,130 @@ export function TeamPanel({
             )}
           </TableBody>
         </Table>
+        </div>
+
+        <div className="divide-y divide-border/50 md:hidden">
+          {members.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+              <p>No team members yet.</p>
+            </div>
+          ) : (
+            members.map((member) => {
+              const inactive = member.is_active === false;
+              const isSelf = member.id === currentUserId;
+              const canEditRole =
+                isAdmin &&
+                !isSelf &&
+                !inactive &&
+                (member.role !== "superadmin" || isSuperAdmin);
+              const canRemove = canRemoveMemberRole(currentUserRole, member.role);
+              const roleOptions =
+                isSuperAdmin && member.role === "superadmin"
+                  ? [SUPERADMIN_ROLE, ...USER_ROLES_LIST]
+                  : USER_ROLES_LIST;
+
+              return (
+                <div
+                  key={member.id}
+                  className={cn("space-y-3 p-4", inactive && "opacity-50")}
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className="bg-primary/20 text-xs text-primary">
+                        {member.full_name?.[0]?.toUpperCase() ?? "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">
+                        {member.full_name ?? "Unnamed"}
+                        {isSelf && (
+                          <span className="ml-1.5 text-xs text-primary">(you)</span>
+                        )}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Joined {format(new Date(member.created_at), "MMM d, yyyy")}
+                      </p>
+                      {inactive && (
+                        <Badge variant="outline" className="mt-1 text-[10px]">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canEditRole ? (
+                      <Select
+                        value={member.role}
+                        onValueChange={(v) => handleRoleChange(member.id, v as UserRole)}
+                        disabled={isPending}
+                      >
+                        <SelectTrigger className="h-9 w-full min-w-[140px] sm:w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roleOptions.map((r) => (
+                            <SelectItem key={r.value} value={r.value}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="outline" className={cn("capitalize", ROLE_BADGE[member.role])}>
+                        {member.role}
+                      </Badge>
+                    )}
+                  </div>
+                  {isAdmin && !isSelf && (
+                    <div className="flex flex-wrap gap-2">
+                      {inactive ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => handleReactivate(member.id)}
+                            disabled={isPending}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Reactivate
+                          </Button>
+                          {canPermanentDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(member)}
+                              disabled={isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete permanently
+                            </Button>
+                          )}
+                        </>
+                      ) : canRemove ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            handleRemove(member.id, member.full_name ?? member.email)
+                          }
+                          disabled={isPending}
+                        >
+                          <UserMinus className="h-3.5 w-3.5" />
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       <Dialog

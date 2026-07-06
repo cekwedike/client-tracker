@@ -28,6 +28,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#C9A227",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -40,7 +42,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full">
+      <body className="min-h-full overflow-x-hidden">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

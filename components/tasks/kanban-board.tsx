@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { profileSelectLabel } from "@/lib/select-labels";
 import { updateTaskAssignee, updateTaskStatus } from "@/lib/actions/tasks";
 import {
   TASK_PRIORITIES,
@@ -224,7 +225,9 @@ const TaskCard = memo(function TaskCard({
             disabled={isPending}
           >
             <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Unassigned" />
+              <SelectValue placeholder="Unassigned">
+                {profileSelectLabel(profiles, task.assignee_id)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Unassigned</SelectItem>

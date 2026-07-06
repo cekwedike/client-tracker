@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createTask } from "@/lib/actions/tasks";
+import { clientSelectLabel, profileSelectLabel } from "@/lib/select-labels";
 import { taskSchema, type TaskFormValues } from "@/lib/validations/task";
 import { TASK_PRIORITIES, type Client, type Profile } from "@/lib/types";
 import { Plus } from "lucide-react";
@@ -53,6 +54,9 @@ export function CreateTaskDialog({
       tags: [],
     },
   });
+
+  const assigneeId = form.watch("assignee_id");
+  const clientId = form.watch("client_id");
 
   const onSubmit = (values: TaskFormValues) => {
     startTransition(async () => {
@@ -96,7 +100,11 @@ export function CreateTaskDialog({
                 value={form.watch("client_id") ?? ""}
                 onValueChange={(v) => form.setValue("client_id", v || null)}
               >
-                <SelectTrigger><SelectValue placeholder="General ops" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="General ops">
+                    {clientSelectLabel(clients, clientId)}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">General ops</SelectItem>
                   {clients.map((c) => (
@@ -111,7 +119,11 @@ export function CreateTaskDialog({
                 value={form.watch("assignee_id") ?? ""}
                 onValueChange={(v) => form.setValue("assignee_id", v || null)}
               >
-                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unassigned">
+                    {profileSelectLabel(profiles, assigneeId)}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Unassigned</SelectItem>
                   {profiles.map((p) => (

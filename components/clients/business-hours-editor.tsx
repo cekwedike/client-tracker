@@ -45,28 +45,30 @@ export function BusinessHoursEditor({
         return (
           <div
             key={day}
-            className="grid grid-cols-[100px_1fr_1fr_auto] items-center gap-3 text-sm"
+            className="grid grid-cols-1 items-center gap-2 rounded-lg border border-border/40 p-3 text-sm sm:grid-cols-[100px_1fr_1fr_auto] sm:gap-3 sm:border-0 sm:p-0"
           >
             <span className="font-medium">{day}</span>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Opens</Label>
-              <Input
-                type="time"
-                value={row?.start_time ?? "09:00"}
-                disabled={isClosed}
-                onChange={(e) => update({ start_time: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Opens</Label>
+                <Input
+                  type="time"
+                  value={row?.start_time ?? "09:00"}
+                  disabled={isClosed}
+                  onChange={(e) => update({ start_time: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Closes</Label>
+                <Input
+                  type="time"
+                  value={row?.end_time ?? "17:00"}
+                  disabled={isClosed}
+                  onChange={(e) => update({ end_time: e.target.value })}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Closes</Label>
-              <Input
-                type="time"
-                value={row?.end_time ?? "17:00"}
-                disabled={isClosed}
-                onChange={(e) => update({ end_time: e.target.value })}
-              />
-            </div>
-            <label className="flex items-center gap-2 pt-5 text-xs">
+            <label className="flex items-center gap-2 text-xs sm:pt-5">
               <input
                 type="checkbox"
                 checked={isClosed}

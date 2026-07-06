@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useState,
   useSyncExternalStore,
 } from "react";
 
@@ -41,11 +42,15 @@ interface SidebarContextValue {
   collapsed: boolean;
   toggle: () => void;
   hydrated: boolean;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+  closeMobile: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const collapsed = useSyncExternalStore(
     subscribe,
     getCollapsedSnapshot,
@@ -56,9 +61,20 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setCollapsedStorage(!getCollapsedSnapshot());
   }, []);
 
+  const closeMobile = useCallback(() => {
+    setMobileOpen(false);
+  }, []);
+
   const value = useMemo(
-    () => ({ collapsed, toggle, hydrated: true }),
-    [collapsed, toggle],
+    () => ({
+      collapsed,
+      toggle,
+      hydrated: true,
+      mobileOpen,
+      setMobileOpen,
+      closeMobile,
+    }),
+    [collapsed, toggle, mobileOpen, closeMobile],
   );
 
   return (
