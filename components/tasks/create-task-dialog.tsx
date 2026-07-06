@@ -93,7 +93,7 @@ export function CreateTaskDialog({
             <Label>Description</Label>
             <Textarea {...form.register("description")} rows={3} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Client</Label>
               <Select
@@ -133,7 +133,7 @@ export function CreateTaskDialog({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Priority</Label>
               <Select

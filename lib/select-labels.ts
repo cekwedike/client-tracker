@@ -4,10 +4,17 @@ export function profileSelectLabel(
   profiles: Pick<Profile, "id" | "full_name" | "email">[],
   id: string | null | undefined,
   fallback = "Unassigned",
+  embedded?: Pick<Profile, "full_name" | "email"> | null,
 ): string {
   if (!id) return fallback;
   const profile = profiles.find((p) => p.id === id);
-  return profile?.full_name?.trim() || profile?.email || fallback;
+  return (
+    profile?.full_name?.trim() ||
+    profile?.email ||
+    embedded?.full_name?.trim() ||
+    embedded?.email ||
+    fallback
+  );
 }
 
 export function clientSelectLabel(
